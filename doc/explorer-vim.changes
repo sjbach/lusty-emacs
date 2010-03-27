@@ -1,6 +1,0 @@
-Cygwin and Windows compatibility fixes.  (Thanks to Brett DiFrischia)
-- Warn if &compatible mode is set.
-- Windows: show matches when at root (i.e. C:/).
-- Cygwin: workaround some missing POSIX stuff.
-- Cygwin: don't freeze when exploring root (weird Ruby bug).
-
