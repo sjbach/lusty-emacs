@@ -33,6 +33,9 @@
 ;; the highlight using C-n / C-p.  Pressing TAB or RET will select the
 ;; highlighted entry.
 ;;
+;; To create a new buffer with the given name, press C-x e.  To open dired at
+;; the current directory, press C-x d.
+;;
 ;; Note: lusty-explorer.el benefits greatly from byte-compilation.  To byte-
 ;; compile this library, M-x byte-compile-file and choose lusty-explorer.el.
 ;; Then, restart Emacs or M-x load-library and choose the newly generated
@@ -108,7 +111,13 @@ Additional keys can be defined in `lusty-mode-map'."
          (lusty--ignored-extensions-regex
           (concat (regexp-opt completion-ignored-extensions) "$"))
          (minibuffer-local-filename-completion-map lusty-mode-map)
-         (file (lusty--run 'read-file-name)))
+         (file
+          ;; read-file-name is silly in that if the result is equal to the
+          ;; dir argument, it gets converted to the default-filename
+          ;; argument.  Set it explicitly to "" so if lusty-launch-dired is
+          ;; called in the directory we start at, the result is that directory
+          ;; instead of the name of the current buffer.
+          (lusty--run 'read-file-name default-directory "")))
     (when file
       (switch-to-buffer
        (find-file-noselect
@@ -154,6 +163,23 @@ Additional keys can be defined in `lusty-mode-map'."
       (ecase lusty--active-mode
         (:file-explorer (lusty--file-explorer-select selected-entry))
         (:buffer-explorer (lusty--buffer-explorer-select selected-entry))))))
+
+;;;###autoload
+(defun lusty-select-current-name ()
+  "Open the given file/buffer or create a new buffer with the current name."
+  (interactive)
+  (when lusty--active-mode
+    (exit-minibuffer)))
+
+;;;###autoload
+(defun lusty-launch-dired ()
+  "Launch dired at the current directory."
+  (interactive)
+  (when (eq lusty--active-mode :file-explorer)
+    (let* ((path (minibuffer-contents-no-properties))
+           (dir (lusty-normalize-dir (file-name-directory path))))
+      (lusty-set-minibuffer-text dir)
+      (exit-minibuffer))))
 
 ;; TODO:
 ;; - highlight opened buffers in filesystem explorer
@@ -643,17 +669,19 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
     (define-key map "\t" 'lusty-select-entry)
     (define-key map "\C-n" 'lusty-highlight-next)
     (define-key map "\C-p" 'lusty-highlight-previous)
+    (define-key map "\C-xd" 'lusty-launch-dired)
+    (define-key map "\C-xe" 'lusty-select-current-name)
     (setq lusty-mode-map map))
   (run-hooks 'lusty-setup-hook))
 
 
-(defun lusty--run (read-fn)
+(defun lusty--run (read-fn &rest args)
   (let ((lusty--highlighted-index 0)
         (lusty--previous-printed-matches '()))
     (add-hook 'post-command-hook 'lusty--post-command-function t)
     (unwind-protect
         (save-window-excursion
-          (funcall read-fn lusty-prompt))
+          (apply read-fn lusty-prompt args))
       (remove-hook 'post-command-hook 'lusty--post-command-function)
       (setq lusty--previous-minibuffer-contents nil
             lusty--initial-window-config nil))))
