@@ -34,7 +34,7 @@
 ;; highlighted entry.
 ;;
 ;; To create a new buffer with the given name, press C-x e.  To open dired at
-;; the current directory, press C-x d.
+;; the current viewed directory, press C-x d.
 ;;
 ;; Note: lusty-explorer.el benefits greatly from byte-compilation.  To byte-
 ;; compile this library, M-x byte-compile-file and choose lusty-explorer.el.
