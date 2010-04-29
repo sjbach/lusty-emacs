@@ -109,7 +109,7 @@ Additional keys can be defined in `lusty-mode-map'."
   (lusty--define-mode-map)
   (let* ((lusty--active-mode :file-explorer)
          (lusty--ignored-extensions-regex
-          (concat (regexp-opt completion-ignored-extensions) "$"))
+           (concat "\\(?:" (regexp-opt completion-ignored-extensions) "\\)$"))
          (minibuffer-local-filename-completion-map lusty-mode-map)
          (file
           ;; read-file-name is silly in that if the result is equal to the
@@ -191,7 +191,7 @@ Additional keys can be defined in `lusty-mode-map'."
 (defvar lusty--previous-minibuffer-contents nil)
 (defvar lusty--ignored-extensions-regex
   ;; Recalculated at execution time.
-  (concat (regexp-opt completion-ignored-extensions) "$"))
+  (concat "\\(?:" (regexp-opt completion-ignored-extensions) "\\)$"))
 (defvar lusty--highlighted-index 0)
 (defvar lusty--previous-printed-matches '())
 (defconst lusty--greatest-factors
