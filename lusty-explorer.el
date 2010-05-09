@@ -138,31 +138,130 @@ Additional keys can be defined in `lusty-mode-map'."
 (defun lusty-highlight-next ()
   "Highlight the next entry in *Lusty-Matches*."
   (interactive)
-  (when lusty--active-mode
-    (incf lusty--highlighted-index)
-    (lusty-refresh-matches-buffer :use-previous-matches)))
+  (when (and lusty--active-mode
+             (not (lusty--matrix-empty-p)))
+    (destructuring-bind (x . y) lusty--highlighted-coords
+
+      ;; Unhighlight previous highlight.
+      (let ((prev-highlight
+             (aref (aref lusty--matches-matrix x) y)))
+        (lusty-propertize-path prev-highlight))
+
+      ;; Determine the coords of the next highlight.
+      (incf y)
+      (unless (lusty--matrix-coord-valid-p x y)
+        (incf x)
+        (setq y 0)
+        (unless (lusty--matrix-coord-valid-p x y)
+          (setq x 0)))
+
+      ;; Refresh with new highlight.
+      (setq lusty--highlighted-coords (cons x y))
+      (lusty-refresh-matches-buffer :use-previous-matrix))))
 
 ;;;###autoload
 (defun lusty-highlight-previous ()
   "Highlight the previous entry in *Lusty-Matches*."
   (interactive)
-  (when lusty--active-mode
-    (decf lusty--highlighted-index)
-    (when (minusp lusty--highlighted-index)
-      (setq lusty--highlighted-index 0))
-    (lusty-refresh-matches-buffer :use-previous-matches)))
+  (when (and lusty--active-mode
+             (not (lusty--matrix-empty-p)))
+    (destructuring-bind (x . y) lusty--highlighted-coords
+
+      ;; Unhighlight previous highlight.
+      (let ((prev-highlight
+             (aref (aref lusty--matches-matrix x) y)))
+        (lusty-propertize-path prev-highlight))
+
+      ;; Determine the coords of the next highlight.
+      (decf y)
+      (unless (lusty--matrix-coord-valid-p x y)
+        (let ((n-cols (length lusty--matches-matrix))
+              (n-rows (length (aref lusty--matches-matrix 0))))
+          (decf x)
+          (setq y (1- n-rows))
+          (unless (lusty--matrix-coord-valid-p x y)
+            (setq x (1- n-cols))
+            (while (not (lusty--matrix-coord-valid-p x y))
+              (decf y)))))
+
+      ;; Refresh with new highlight.
+      (setq lusty--highlighted-coords (cons x y))
+      (lusty-refresh-matches-buffer :use-previous-matrix))))
+
+;;;###autoload
+(defun lusty-highlight-next-column ()
+  "Highlight the next column in *Lusty-Matches*."
+  (interactive)
+  (when (and lusty--active-mode
+             (not (lusty--matrix-empty-p)))
+    (destructuring-bind (x . y) lusty--highlighted-coords
+
+      ;; Unhighlight previous highlight.
+      (let ((prev-highlight
+             (aref (aref lusty--matches-matrix x) y)))
+        (lusty-propertize-path prev-highlight))
+
+      ;; Determine the coords of the next highlight.
+      (incf x)
+      (unless (lusty--matrix-coord-valid-p x y)
+        (setq x 0)
+        (incf y)
+        (unless (lusty--matrix-coord-valid-p x y)
+          (setq y 0)))
+
+      ;; Refresh with new highlight.
+      (setq lusty--highlighted-coords (cons x y))
+      (lusty-refresh-matches-buffer :use-previous-matrix))))
+
+;;;###autoload
+(defun lusty-highlight-previous-column ()
+  "Highlight the previous column in *Lusty-Matches*."
+  (interactive)
+  (when (and lusty--active-mode
+             (not (lusty--matrix-empty-p)))
+    (destructuring-bind (x . y) lusty--highlighted-coords
+
+      ;; Unhighlight previous highlight.
+      (let ((prev-highlight
+             (aref (aref lusty--matches-matrix x) y)))
+        (lusty-propertize-path prev-highlight))
+
+      ;; Determine the coords of the next highlight.
+      (let ((n-cols (length lusty--matches-matrix))
+            (n-rows (length (aref lusty--matches-matrix 0))))
+        (if (and (zerop x)
+                 (zerop y))
+            (progn
+              (setq x (1- n-cols)
+                    y (1- n-rows))
+              (while (not (lusty--matrix-coord-valid-p x y))
+                (decf y)))
+          (decf x)
+          (unless (lusty--matrix-coord-valid-p x y)
+            (setq x (1- n-cols))
+            (decf y)
+            (unless (lusty--matrix-coord-valid-p x y)
+              ;            (setq y (1- n-rows))
+              (while (not (lusty--matrix-coord-valid-p x y))
+                (decf x))))))
+
+      ;; Refresh with new highlight.
+      (setq lusty--highlighted-coords (cons x y))
+      (lusty-refresh-matches-buffer :use-previous-matrix))))
 
 ;;;###autoload
 (defun lusty-select-entry ()
   "Select the highlighted entry in *Lusty-Matches*."
   (interactive)
-  (when (and lusty--active-mode
-             lusty--previous-printed-matches)
-    (let ((selected-entry (nth lusty--highlighted-index
-                               lusty--previous-printed-matches)))
-      (ecase lusty--active-mode
-        (:file-explorer (lusty--file-explorer-select selected-entry))
-        (:buffer-explorer (lusty--buffer-explorer-select selected-entry))))))
+  (destructuring-bind (x . y) lusty--highlighted-coords
+    (when (and lusty--active-mode
+               (< x (length lusty--matches-matrix))
+               (< y (length (aref lusty--matches-matrix x))))
+      (let ((selected-entry
+             (aref (aref lusty--matches-matrix x) y)))
+        (ecase lusty--active-mode
+          (:file-explorer (lusty--file-explorer-select selected-entry))
+          (:buffer-explorer (lusty--buffer-explorer-select selected-entry)))))))
 
 ;;;###autoload
 (defun lusty-select-current-name ()
@@ -192,8 +291,14 @@ Additional keys can be defined in `lusty-mode-map'."
 (defvar lusty--ignored-extensions-regex
   ;; Recalculated at execution time.
   (concat "\\(?:" (regexp-opt completion-ignored-extensions) "\\)$"))
-(defvar lusty--highlighted-index 0)
-(defvar lusty--previous-printed-matches '())
+
+(defvar lusty--highlighted-coords (cons 0 0))  ; (x . y)
+
+;; Set by lusty--compute-layout-matrix
+(defvar lusty--matches-matrix (make-vector 0 nil))
+(defvar lusty--matrix-column-widths '())
+(defvar lusty--matrix-truncated-p nil)
+
 (defconst lusty--greatest-factors
   (let ((vec (make-vector 1000 nil)))
     (dotimes (n 1000)
@@ -207,6 +312,15 @@ Additional keys can be defined in `lusty-mode-map'."
 (when lusty--wrapping-ido-p
   (require 'ido))
 (defvar ido-text) ; silence compiler warning
+
+(defsubst lusty--matrix-empty-p ()
+  (zerop (length lusty--matches-matrix)))
+(defsubst lusty--matrix-coord-valid-p (x y)
+  (not (or (minusp x)
+           (minusp y)
+           (>= x (length lusty--matches-matrix))
+           (>= y (length (aref lusty--matches-matrix 0)))
+           (null (aref (aref lusty--matches-matrix x) y)))))
 
 (defun lusty-sort-by-fuzzy-score (strings abbrev)
   ;; TODO: case-sensitive when abbrev contains capital letter
@@ -321,7 +435,7 @@ does not begin with '.'."
       (lusty--setup-matches-window))
 
     (setq lusty--previous-minibuffer-contents (minibuffer-contents-no-properties)
-          lusty--highlighted-index 0)
+          lusty--highlighted-coords (cons 0 0))
     (lusty-refresh-matches-buffer)))
 
 ;; Cribbed with modification from tail-select-lowest-window.
@@ -395,20 +509,22 @@ does not begin with '.'."
   ;; Window configuration may be restored intermittently.
   (setq lusty--initial-window-config (current-window-configuration)))
 
-(defun lusty-refresh-matches-buffer (&optional use-previous-matches-p)
+(defun lusty-refresh-matches-buffer (&optional use-previous-matrix-p)
   "Refresh *Lusty-Matches*."
   (assert (minibufferp))
   (let* ((minibuffer-text (if lusty--wrapping-ido-p
                               ido-text
-                            (minibuffer-contents-no-properties)))
-         (matches
-          (if use-previous-matches-p
-              lusty--previous-printed-matches
-            (ecase lusty--active-mode
-              (:file-explorer
-               (lusty-file-explorer-matches minibuffer-text))
-              (:buffer-explorer
-               (lusty-buffer-explorer-matches minibuffer-text))))))
+                            (minibuffer-contents-no-properties))))
+
+    (unless use-previous-matrix-p
+      ;; Refresh the matches and layout matrix
+      (let ((matches
+             (ecase lusty--active-mode
+               (:file-explorer
+                (lusty-file-explorer-matches minibuffer-text))
+               (:buffer-explorer
+                (lusty-buffer-explorer-matches minibuffer-text)))))
+        (lusty--compute-layout-matrix matches)))
 
     ;; Update the matches window.
     (let ((lusty-buffer (get-buffer-create lusty-buffer-name)))
@@ -416,8 +532,7 @@ does not begin with '.'."
         (setq buffer-read-only t)
         (let ((buffer-read-only nil))
           (erase-buffer)
-          (lusty--display-entries matches)
-          (setq lusty--previous-printed-matches matches)
+          (lusty--display-entries)
           (goto-char (point-min))))
 
       ;; If only our matches window is open,
@@ -466,7 +581,7 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
       (put-text-property 0 (1+ last) 'face lusty-file-face path)))
   path)
 
-(defun lusty--compute-optimal-layout (items)
+(defun lusty--compute-layout-matrix (items)
   (let* ((max-visible-rows (1- (lusty-max-window-height)))
          (max-width (lusty-max-window-width))
          (upper-bound most-positive-fixnum)
@@ -500,7 +615,9 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
 
     ;; Determine optimal row count.
     (multiple-value-bind (optimal-n-rows truncated-p)
-        (cond ((< upper-bound n-items)
+        (cond ((endp items)
+               (values 0 nil))
+              ((< upper-bound n-items)
                (values max-visible-rows t))
               ((<= (reduce (lambda (a b) (+ a separator-length b))
                            lengths-v)
@@ -530,9 +647,34 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
               (incf n-columns)
               (push col-width column-widths)
               (incf total-width separator-length))
+        (setq column-widths (nreverse column-widths))
 
-        (values optimal-n-rows n-columns (nreverse column-widths)
-                lengths-v truncated-p)))))
+        (let ((matrix
+               ;; Create an empty matrix.
+               (let ((col-vec (make-vector n-columns nil)))
+                 (dotimes (i n-columns)
+                   (aset col-vec i
+                         (make-vector optimal-n-rows nil)))
+                 col-vec)))
+
+          ;; Fill the matrix with propertized matches.
+          (unless (zerop n-columns)
+            (let ((x 0)
+                  (y 0)
+                  (col-vec (aref matrix 0)))
+              (dolist (item items)
+                (aset col-vec y (lusty-propertize-path item))
+                (incf y)
+                (when (>= y optimal-n-rows)
+                  (incf x)
+                  (if (>= x n-columns)
+                      (return)
+                    (setq col-vec (aref matrix x)))
+                  (setq y 0)))))
+
+          (setq lusty--matches-matrix matrix
+                lusty--matrix-column-widths column-widths
+                lusty--matrix-truncated-p truncated-p))))))
 
 ;; Returns number of rows and whether this truncates the entries.
 (defun* lusty--compute-optimal-row-count (lengths-v separator-length)
@@ -599,53 +741,39 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
     (puthash (cons start-index end-index) width lengths-h)
     width))
 
-(defun* lusty--display-entries (entries)
+; STEVE rename entries -> matches
+(defun* lusty--display-entries ()
 
-  (when (endp entries)
+  (when (lusty--matrix-empty-p)
     (lusty--print-no-entries)
     (return-from lusty--display-entries))
 
-  (multiple-value-bind (n-rows n-columns column-widths lengths-v truncated-p)
-      (lusty--compute-optimal-layout entries)
+  (let* ((n-columns (length lusty--matches-matrix))
+         (n-rows (length (aref lusty--matches-matrix 0))))
 
-    (let* ((n-entries (min (* n-rows n-columns)
-                           (length lengths-v)))
-           (propertized
-            ;; Add font faces to the entries
-            (loop with highlighted-index = (mod lusty--highlighted-index
-                                                n-entries)
-                  for e in entries
-                  for i from 0
-                  when (= i highlighted-index)
-                  collect (propertize e 'face lusty-match-face)
-                  else
-                  collect (lusty-propertize-path e))))
+    ;; Highlight the selected match.
+    (destructuring-bind (h-x . h-y) lusty--highlighted-coords
+      (setf (aref (aref lusty--matches-matrix h-x) h-y)
+            (propertize (aref (aref lusty--matches-matrix h-x) h-y)
+                        'face lusty-match-face)))
 
-      ;; Compile and print rows.
-      (let ((rows (make-vector n-rows nil)))
-        (loop with col = 0
-              with column-width = (car column-widths)
-              for count from 0 upto (1- n-entries)
-              for row = (mod count n-rows)
-              for len = (aref lengths-v count)
-              for entry in propertized
-              for spacer = (make-string (- column-width len) ?\ )
-              do
-              (push entry (aref rows row))
-              (when (< col (1- n-columns))
-                (push spacer (aref rows row))
-                (push lusty-column-separator (aref rows row)))
-              (when (> (/ (1+ count) n-rows) col)
-                (incf col)
-                (setq column-width (nth col column-widths))))
+    ;; Print the match matrix.
+    (dotimes (y n-rows)
+      (loop for column-width in lusty--matrix-column-widths
+            for x from 0 upto n-columns
+            do
+            (let ((entry (aref (aref lusty--matches-matrix x) y)))
+              (when entry
+                (insert entry)
+                (when (< x (1- n-columns))
+                  (let* ((spacer
+                          (make-string (- column-width (length entry))
+                                       ?\ )))
+                    (insert spacer lusty-column-separator))))))
+      (insert "\n")))
 
-        (loop for row across rows
-              do
-          (apply 'insert (nreverse row))
-          (insert "\n"))))
-
-    (when truncated-p
-      (lusty--print-truncated))))
+  (when lusty--matrix-truncated-p
+    (lusty--print-truncated)))
 
 (defun lusty--print-no-entries ()
   (insert lusty-no-entries-string)
@@ -669,6 +797,8 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
     (define-key map "\t" 'lusty-select-entry)
     (define-key map "\C-n" 'lusty-highlight-next)
     (define-key map "\C-p" 'lusty-highlight-previous)
+    (define-key map "\C-f" 'lusty-highlight-next-column)
+    (define-key map "\C-b" 'lusty-highlight-previous-column)
     (define-key map "\C-xd" 'lusty-launch-dired)
     (define-key map "\C-xe" 'lusty-select-current-name)
     (setq lusty-mode-map map))
@@ -676,8 +806,10 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
 
 
 (defun lusty--run (read-fn &rest args)
-  (let ((lusty--highlighted-index 0)
-        (lusty--previous-printed-matches '()))
+  (let ((lusty--highlighted-coords (cons 0 0))
+        (lusty--matches-matrix (make-vector 0 nil))
+        (lusty--matrix-column-widths '())
+        (lusty--matrix-truncated-p nil))
     (add-hook 'post-command-hook 'lusty--post-command-function t)
     (unwind-protect
         (save-window-excursion
