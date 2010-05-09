@@ -2,8 +2,8 @@
 ;;
 ;; Copyright (C) 2008-2010 Stephen Bach <this-file@sjbach.com>
 ;;
-;; Version: 2.1
-;; Created: January 26, 2009
+;; Version: 2.2
+;; Created: May 9, 2010
 ;; Keywords: convenience, files, matching
 ;; Compatibility: GNU Emacs 22 and 23
 ;;
@@ -30,16 +30,16 @@
 ;; And then use as you would `find-file' or `switch-to-buffer'. A split window
 ;; shows the *Lusty-Matches* buffer, which updates dynamically as you type
 ;; using a fuzzy matching algorithm.  One match is highlighted; you can move
-;; the highlight using C-n / C-p.  Pressing TAB or RET will select the
-;; highlighted match.
+;; the highlight using C-n / C-p (next, previous) and C-f / C-b (next column,
+;; previous column).  Pressing TAB or RET will select the highlighted match.
 ;;
 ;; To create a new buffer with the given name, press C-x e.  To open dired at
 ;; the current viewed directory, press C-x d.
 ;;
 ;; Note: lusty-explorer.el benefits greatly from byte-compilation.  To byte-
 ;; compile this library, M-x byte-compile-file and choose lusty-explorer.el.
-;; Then, restart Emacs or M-x load-library and choose the newly generated
-;; lusty-explorer.elc file.
+;; (Ignore any warnings about the cl package.) Then, restart Emacs or
+;; M-x load-library and choose the newly generated lusty-explorer.elc file.
 ;;
 ;;; Customization:
 ;;  --------------
@@ -62,6 +62,7 @@
 ;; Jan Rehders
 ;; Hugo Schmitt
 ;; Volkan Yazici
+;; René Kyllingstad
 ;;
 
 ;;; Code:
@@ -283,6 +284,10 @@ Additional keys can be defined in `lusty-mode-map'."
 ;; TODO:
 ;; - highlight opened buffers in filesystem explorer
 ;; - FIX: deal with permission-denied
+;; - if NO ENTRIES, RET opens new buffer with current name (if nonempty)
+;; - C-e/C-a -> last/first column?
+;; - config var: C-x d opens highlighted dir instead of current dir
+;; - (run-with-idle-timer 0.1 ...)
 
 (defvar lusty--active-mode nil)
 (defvar lusty--wrapping-ido-p nil)
