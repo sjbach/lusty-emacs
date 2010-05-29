@@ -31,7 +31,8 @@
 ;; shows the *Lusty-Matches* buffer, which updates dynamically as you type
 ;; using a fuzzy matching algorithm.  One match is highlighted; you can move
 ;; the highlight using C-n / C-p (next, previous) and C-f / C-b (next column,
-;; previous column).  Pressing TAB or RET will select the highlighted match.
+;; previous column).  Pressing TAB or RET will select the highlighted match
+;; (with slightly different semantics).
 ;;
 ;; To create a new buffer with the given name, press C-x e.  To open dired at
 ;; the current viewed directory, press C-x d.
@@ -251,13 +252,32 @@ Additional keys can be defined in `lusty-mode-map'."
       (lusty-refresh-matches-buffer :use-previous-matrix))))
 
 ;;;###autoload
+(defun lusty-open-this ()
+  "Open the given file/directory/buffer, creating it if not already present."
+  (interactive)
+  (when lusty--active-mode
+    (if (lusty--matrix-empty-p)
+        ;; No matches - open a new buffer/file with the current name.
+        (lusty-select-current-name)
+      (ecase lusty--active-mode
+        (:file-explorer
+         (let* ((path (minibuffer-contents-no-properties))
+                (last-char (aref path (1- (length path)))))
+           (if (and (file-directory-p path)
+                   (not (eq last-char ?/))) ; <-- FIXME nonportable?
+               ;; Current path is a directory, sans-slash.  Open in dired.
+               (lusty-select-current-name)
+             ;; Just activate the current match as normal.
+             (lusty-select-match))))
+        (:buffer-explorer (lusty-select-match))))))
+
+;;;###autoload
 (defun lusty-select-match ()
-  "Select the highlighted match in *Lusty-Matches*."
+  "Activate the highlighted match in *Lusty-Matches* - recurse if dir, open if file/buffer."
   (interactive)
   (destructuring-bind (x . y) lusty--highlighted-coords
-    (when (and lusty--active-mode
-               (< x (length lusty--matches-matrix))
-               (< y (length (aref lusty--matches-matrix x))))
+    (when lusty--active-mode
+      (assert (lusty--matrix-coord-valid-p x y))
       (let ((selected-match
              (aref (aref lusty--matches-matrix x) y)))
         (ecase lusty--active-mode
@@ -817,7 +837,7 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
     ;; TODO: perhaps RET should be:
     ;; - if buffer explorer, same as \t
     ;; - if file explorer, opens current name (or recurses if existing dir)
-    (define-key map (kbd "RET") 'lusty-select-match)
+    (define-key map (kbd "RET") 'lusty-open-this)
     (define-key map "\t" 'lusty-select-match)
     (define-key map "\C-n" 'lusty-highlight-next)
     (define-key map "\C-p" 'lusty-highlight-previous)
