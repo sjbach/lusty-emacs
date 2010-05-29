@@ -810,6 +810,8 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
     (define-key map "\t" 'lusty-select-match)
     (define-key map "\C-n" 'lusty-highlight-next)
     (define-key map "\C-p" 'lusty-highlight-previous)
+    (define-key map "\C-s" 'lusty-highlight-next)
+    (define-key map "\C-r" 'lusty-highlight-previous)
     (define-key map "\C-f" 'lusty-highlight-next-column)
     (define-key map "\C-b" 'lusty-highlight-previous-column)
     (define-key map "\C-xd" 'lusty-launch-dired)
