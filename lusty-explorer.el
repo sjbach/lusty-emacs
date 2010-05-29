@@ -551,7 +551,7 @@ does not begin with '.'."
       (fit-window-to-buffer (display-buffer lusty-buffer))
       (set-buffer-modified-p nil))))
 
-(defun lusty-buffer-explorer-matches (text)
+(defun lusty-buffer-explorer-matches (match-text)
   (let* ((buffers (lusty-filter-buffers (buffer-list))))
     (unless (endp (cdr buffers))
       ;; Put the current buffer at the end of the list, like
@@ -559,11 +559,22 @@ does not begin with '.'."
       (setq buffers
             (append (cdr buffers)
                     (list (car buffers)))))
-    (if (string= text "")
+    (if (string= match-text "")
         buffers
-      (lusty-sort-by-fuzzy-score
-       buffers
-       text))))
+      ;; Sort first by fuzzy score, then by MRU.
+      (let* ((score-mru-table
+              (loop for b in buffers
+                    for i from 0
+                    for score = (LM-score b match-text)
+                    unless (zerop score)
+                    collect (list b score i)))
+             (sorted
+              (sort score-mru-table
+                    (lambda (a b)
+                      (if (= (second a) (second b))
+                          (< (third a) (third b))
+                        (> (second a) (second b)))))))
+        (mapcar 'car sorted)))))
 
 ;; FIXME: return an array instead of a list?
 (defun lusty-file-explorer-matches (path)
