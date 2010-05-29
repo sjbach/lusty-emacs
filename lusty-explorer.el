@@ -783,9 +783,13 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
                   (+ start-index
                      (ash (- end-index start-index) -1)))
                  (first-half
-                  (lusty--compute-column-width start-index split-point lengths-v lengths-h))
+                  (lusty--compute-column-width
+                   start-index split-point
+                   lengths-v lengths-h))
                  (second-half
-                  (lusty--compute-column-width (1+ split-point) end-index lengths-v lengths-h)))
+                  (lusty--compute-column-width
+                   (1+ split-point) end-index
+                   lengths-v lengths-h)))
             (puthash (cons start-index end-index)
                      (max first-half second-half)
                      lengths-h))))))
