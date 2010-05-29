@@ -64,6 +64,7 @@
 ;; Hugo Schmitt
 ;; Volkan Yazici
 ;; René Kyllingstad
+;; Alex Schroeder
 ;;
 
 ;;; Code:
@@ -304,11 +305,9 @@ Additional keys can be defined in `lusty-mode-map'."
 ;; TODO:
 ;; - highlight opened buffers in filesystem explorer
 ;; - FIX: deal with permission-denied
-;; - if NO ENTRIES, RET opens new buffer with current name (if nonempty)
 ;; - C-e/C-a -> last/first column?
 ;; - config var: C-x d opens highlighted dir instead of current dir
 ;; - (run-with-idle-timer 0.1 ...)
-;; - RET should open a dir in dired if named as a file (no trailing slash)
 
 (defvar lusty--active-mode nil)
 (defvar lusty--wrapping-ido-p nil)
@@ -324,16 +323,6 @@ Additional keys can be defined in `lusty-mode-map'."
 (defvar lusty--matches-matrix (make-vector 0 nil))
 (defvar lusty--matrix-column-widths '())
 (defvar lusty--matrix-truncated-p nil)
-
-(defconst lusty--greatest-factors
-  (let ((vec (make-vector 1000 nil)))
-    (dotimes (n 1000)
-      (let ((factor
-             (loop for i from 2 upto (ash n -1)
-                   when (zerop (mod n i))
-                   return (/ n i))))
-      (aset vec n factor)))
-    vec))
 
 (when lusty--wrapping-ido-p
   (require 'ido))
@@ -670,8 +659,7 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
                ;; All fits in a single row.
                (values 1 nil))
               (t
-               (lusty--compute-optimal-row-count lengths-v
-                                                 separator-length)))
+               (lusty--compute-optimal-row-count lengths-v)))
       (let ((n-columns 0)
             (column-widths '()))
 
@@ -722,69 +710,85 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
                 lusty--matrix-truncated-p truncated-p))))))
 
 ;; Returns number of rows and whether this truncates the matches.
-(defun* lusty--compute-optimal-row-count (lengths-v separator-length)
-  (let* ((n-items (length lengths-v))
+(defun* lusty--compute-optimal-row-count (lengths-v)
+  ;;
+  ;; Binary search; find the lowest number of rows at which we
+  ;; can fit all the strings.
+  ;;
+  (let* ((separator-length (length lusty-column-separator))
+         (n-items (length lengths-v))
          (max-visible-rows (1- (lusty-max-window-height)))
          (available-width (lusty-max-window-width))
-         (lengths-h (make-hash-table :test 'equal
-                                     ; not scientific
-                                     :size n-items)))
+         (lengths-h
+          ;; Hashes by cons, e.g. (0 . 2), representing the width
+          ;; of the column bounded by the range of [0..2].
+          (make-hash-table :test 'equal
+                           ; not scientific
+                           :size n-items))
+         ;; We've already failed for a single row, so start at two.
+         (lower 1)
+         (upper (1+ max-visible-rows)))
 
-    ;; FIXME: do binary search instead of linear
-    (do ((n-rows 2 (1+ n-rows)))
-        ((>= n-rows max-visible-rows)
-         (values max-visible-rows t))
-      (let ((col-start-index 0)
-            (col-end-index (1- n-rows))
-            (total-width 0)
-            (split-factor (aref lusty--greatest-factors n-rows)))
+    (while (/= (1+ lower) upper)
+      (let* ((n-rows (/ (+ lower upper) 2)) ; Mid-point
+             (col-start-index 0)
+             (col-end-index (1- n-rows))
+             (total-width 0))
 
-        ;; Calculate required total-width for this number of rows.
-        (while (< col-end-index n-items)
-          (let ((column-width
-                 (lusty--compute-column-width
-                  col-start-index col-end-index split-factor
-                  lengths-v lengths-h)))
+        (block :column-widths
+          (while (< col-end-index (length lengths-v))
+            (incf total-width
+                  (lusty--compute-column-width
+                   col-start-index col-end-index
+                   lengths-v lengths-h))
 
-            (incf total-width column-width)
-            (incf total-width separator-length))
+            (when (> total-width available-width)
+              ;; Early exit.
+              (setq total-width most-positive-fixnum)
+              (return-from :column-widths))
 
-          (incf col-start-index n-rows) ; setq col-end-index
-          (incf col-end-index n-rows)
+            (incf total-width separator-length)
 
-          (when (and (>= col-end-index n-items)
-                     (< col-start-index n-items))
-            ;; Remainder; last iteration will not be a full column.
-            (setq col-end-index (1- n-items)
-                  split-factor nil)))
+            (incf col-start-index n-rows)
+            (incf col-end-index n-rows)
+
+            (when (and (>= col-end-index (length lengths-v))
+                       (< col-start-index (length lengths-v)))
+              ;; Remainder; last iteration will not be a full column.
+              (setq col-end-index (1- (length lengths-v))))))
 
         ;; The final column doesn't need a separator.
         (decf total-width separator-length)
 
-        (when (<= total-width available-width)
-          (return-from lusty--compute-optimal-row-count
-            (values n-rows nil)))))))
+        (if (<= total-width available-width)
+            ;; This row count fits.
+            (setq upper n-rows)
+          ;; This row count doesn't fit.
+          (setq lower n-rows))))
 
-(defsubst lusty--compute-column-width (start-index end-index split-factor
-                                       lengths-v lengths-h)
-  (let ((width 0)
-        (iter start-index))
-    (cond ((= start-index end-index)
-           ;; Single-element remainder
-           (setq width (aref lengths-v iter)))
-          ((null split-factor)
-           ;; Prime number, or a remainder
-           (while (<= iter end-index)
-             (setq width (max width (aref lengths-v iter)))
-             (incf iter)))
-          (t
-           (while (<= iter end-index)
-             (setq width
-                   (max width
-                        (gethash (cons iter (+ iter (1- split-factor))) lengths-h)))
-             (incf iter split-factor))))
-    (puthash (cons start-index end-index) width lengths-h)
-    width))
+    (if (> upper max-visible-rows)
+        ;; No row count can accomodate all entries; have to truncate.
+        ;; (-1 for the truncate indicator)
+        (values (1- max-visible-rows) t)
+      (values upper nil))))
+
+(defsubst lusty--compute-column-width (start-index end-index lengths-v lengths-h)
+  (if (= start-index end-index)
+      ;; Single-element remainder
+      (aref lengths-v start-index)
+    (let* ((range (cons start-index end-index))
+           (width (gethash range lengths-h)))
+      (or width
+          (let* ((split-point
+                  (+ start-index
+                     (ash (- end-index start-index) -1)))
+                 (first-half
+                  (lusty--compute-column-width start-index split-point lengths-v lengths-h))
+                 (second-half
+                  (lusty--compute-column-width (1+ split-point) end-index lengths-v lengths-h)))
+            (puthash (cons start-index end-index)
+                     (max first-half second-half)
+                     lengths-h))))))
 
 (defun* lusty--display-matches ()
 
