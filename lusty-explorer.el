@@ -288,6 +288,7 @@ Additional keys can be defined in `lusty-mode-map'."
 ;; - C-e/C-a -> last/first column?
 ;; - config var: C-x d opens highlighted dir instead of current dir
 ;; - (run-with-idle-timer 0.1 ...)
+;; - RET should open a dir in dired if named as a file (no trailing slash)
 
 (defvar lusty--active-mode nil)
 (defvar lusty--wrapping-ido-p nil)
@@ -552,6 +553,12 @@ does not begin with '.'."
 
 (defun lusty-buffer-explorer-matches (text)
   (let* ((buffers (lusty-filter-buffers (buffer-list))))
+    (unless (endp (cdr buffers))
+      ;; Put the current buffer at the end of the list, like
+      ;; iswitchb.
+      (setq buffers
+            (append (cdr buffers)
+                    (list (car buffers)))))
     (if (string= text "")
         buffers
       (lusty-sort-by-fuzzy-score
