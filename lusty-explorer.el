@@ -277,7 +277,8 @@ Additional keys can be defined in `lusty-mode-map'."
   "Activate the highlighted match in *Lusty-Matches* - recurse if dir, open if file/buffer."
   (interactive)
   (destructuring-bind (x . y) lusty--highlighted-coords
-    (when lusty--active-mode
+    (when (and lusty--active-mode
+               (not (lusty--matrix-empty-p)))
       (assert (lusty--matrix-coord-valid-p x y))
       (let ((selected-match
              (aref (aref lusty--matches-matrix x) y)))
