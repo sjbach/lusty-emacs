@@ -2,8 +2,8 @@
 ;;
 ;; Copyright (C) 2008-2010 Stephen Bach <this-file@sjbach.com>
 ;;
-;; Version: 2.2
-;; Created: May 9, 2010
+;; Version: 2.3
+;; Created: June 22, 2010
 ;; Keywords: convenience, files, matching
 ;; Compatibility: GNU Emacs 22 and 23
 ;;
