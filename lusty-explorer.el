@@ -89,6 +89,12 @@ Additional keys can be defined in `lusty-mode-map'."
   :type 'hook
   :group 'lusty-explorer)
 
+(defcustom lusty-idle-seconds-per-refresh 0.05
+  "Seconds to wait for additional input before updating matches window.
+Can be floating point; 0.05 = 50 milliseconds.  Set to 0 to disable."
+  :type 'number
+  :group 'lusty-explorer)
+
 (defvar lusty-match-face font-lock-function-name-face)
 (defvar lusty-directory-face font-lock-type-face)
 (defvar lusty-slash-face font-lock-keyword-face)
@@ -308,12 +314,12 @@ Additional keys can be defined in `lusty-mode-map'."
 ;; - FIX: deal with permission-denied
 ;; - C-e/C-a -> last/first column?
 ;; - config var: C-x d opens highlighted dir instead of current dir
-;; - (run-with-idle-timer 0.1 ...)
 
 (defvar lusty--active-mode nil)
 (defvar lusty--wrapping-ido-p nil)
 (defvar lusty--initial-window-config nil)
 (defvar lusty--previous-minibuffer-contents nil)
+(defvar lusty--current-idle-timer nil)
 (defvar lusty--ignored-extensions-regex
   ;; Recalculated at execution time.
   (concat "\\(?:" (regexp-opt completion-ignored-extensions) "\\)$"))
@@ -448,13 +454,26 @@ does not begin with '.'."
                  (not (string= lusty--previous-minibuffer-contents
                                (minibuffer-contents-no-properties)))))
 
-    (when (null lusty--initial-window-config)
-      ;; (Only run when the explorer function is initially executed.)
-      (lusty--setup-matches-window))
+    (let ((startup-p (null lusty--initial-window-config)))
 
-    (setq lusty--previous-minibuffer-contents (minibuffer-contents-no-properties)
-          lusty--highlighted-coords (cons 0 0))
-    (lusty-refresh-matches-buffer)))
+      (when startup-p
+        (lusty--setup-matches-window))
+
+      (setq lusty--previous-minibuffer-contents
+            (minibuffer-contents-no-properties))
+      (setq lusty--highlighted-coords
+            (cons 0 0))
+
+      ;; Refresh matches.
+      (if (or startup-p (null lusty-idle-seconds-per-refresh)
+              (eq lusty--active-mode :buffer-explorer))
+          ;; No idle timer on first refresh, and never for buffer explorer.
+          (lusty-refresh-matches-buffer)
+        (when lusty--current-idle-timer
+          (cancel-timer lusty--current-idle-timer))
+        (setq lusty--current-idle-timer
+              (run-with-idle-timer lusty-idle-seconds-per-refresh nil
+                                   'lusty-refresh-matches-buffer))))))
 
 ;; Cribbed with modification from tail-select-lowest-window.
 (defun lusty-lowest-window ()
@@ -871,7 +890,8 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
           (apply read-fn lusty-prompt args))
       (remove-hook 'post-command-hook 'lusty--post-command-function)
       (setq lusty--previous-minibuffer-contents nil
-            lusty--initial-window-config nil))))
+            lusty--initial-window-config nil
+            lusty--current-idle-timer nil))))
 
 
 ;;
