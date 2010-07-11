@@ -862,9 +862,6 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
   ;; Re-generated every run so that it can inherit new functions.
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map minibuffer-local-map)
-    ;; TODO: perhaps RET should be:
-    ;; - if buffer explorer, same as \t
-    ;; - if file explorer, opens current name (or recurses if existing dir)
     (define-key map (kbd "RET") 'lusty-open-this)
     (define-key map "\t" 'lusty-select-match)
     (define-key map "\C-n" 'lusty-highlight-next)
