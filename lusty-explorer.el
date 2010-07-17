@@ -580,14 +580,22 @@ does not begin with '.'."
       (fit-window-to-buffer (display-buffer lusty-buffer))
       (set-buffer-modified-p nil))))
 
+(defun lusty-buffer-list ()
+  "Return a list of buffers ordered with those currently visible at the end."
+  (let ((visible-buffers '()))
+    (flet ((add-buffer-maybe (window)
+             (let ((b (window-buffer window)))
+               (unless (memq b visible-buffers)
+                 (push b visible-buffers)))))
+      (walk-windows 'add-buffer-maybe nil 'visible))
+    (let ((non-visible-buffers
+           (loop for b in (buffer-list)
+                 unless (memq b visible-buffers)
+                 collect b)))
+      (nconc non-visible-buffers visible-buffers))))
+
 (defun lusty-buffer-explorer-matches (match-text)
-  (let* ((buffers (lusty-filter-buffers (buffer-list))))
-    (unless (endp (cdr buffers))
-      ;; Put the current buffer at the end of the list, like
-      ;; iswitchb.
-      (setq buffers
-            (append (cdr buffers)
-                    (list (car buffers)))))
+  (let ((buffers (lusty-filter-buffers (lusty-buffer-list))))
     (if (string= match-text "")
         buffers
       ;; Sort first by fuzzy score, then by MRU.
