@@ -95,6 +95,12 @@ Can be floating point; 0.05 = 50 milliseconds.  Set to 0 to disable."
   :type 'number
   :group 'lusty-explorer)
 
+(defcustom lusty-buffer-MRU-contribution 0.1
+  "How much influence buffer recency-of-use should have on ordering of
+buffer names in the matches window; 0.10 = %10."
+  :type 'float
+  :group 'lusty-explorer)
+
 (defvar lusty-match-face font-lock-function-name-face)
 (defvar lusty-directory-face font-lock-type-face)
 (defvar lusty-slash-face font-lock-keyword-face)
@@ -597,20 +603,20 @@ does not begin with '.'."
 (defun lusty-buffer-explorer-matches (match-text)
   (let ((buffers (lusty-filter-buffers (lusty-buffer-list))))
     (if (string= match-text "")
+        ;; Sort by MRU.
         buffers
-      ;; Sort first by fuzzy score, then by MRU.
-      (let* ((score-mru-table
-              (loop for b in buffers
-                    for i from 0
+      ;; Sort by fuzzy score and MRU order.
+      (let* ((score-table
+              (loop with MRU-factor-step = (/ lusty-buffer-MRU-contribution
+                                              (length buffers))
+                    for b in buffers
+                    for step from 0.0 by MRU-factor-step
                     for score = (LM-score b match-text)
+                    for MRU-factor = (- 1.0 step)
                     unless (zerop score)
-                    collect (list b score i)))
+                    collect (cons b (* score MRU-factor))))
              (sorted
-              (sort score-mru-table
-                    (lambda (a b)
-                      (if (= (second a) (second b))
-                          (< (third a) (third b))
-                        (> (second a) (second b)))))))
+              (sort* score-table '> :key 'cdr)))
         (mapcar 'car sorted)))))
 
 ;; FIXME: return an array instead of a list?
