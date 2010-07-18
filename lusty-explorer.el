@@ -256,7 +256,6 @@ buffer names in the matches window; 0.10 = %10."
             (setq x (1- n-cols))
             (decf y)
             (unless (lusty--matrix-coord-valid-p x y)
-              ;            (setq y (1- n-rows))
               (while (not (lusty--matrix-coord-valid-p x y))
                 (decf x))))))
 
