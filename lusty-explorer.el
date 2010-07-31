@@ -65,6 +65,7 @@
 ;; Volkan Yazici
 ;; René Kyllingstad
 ;; Alex Schroeder
+;; Tassilo Horn
 ;;
 
 ;;; Code:
