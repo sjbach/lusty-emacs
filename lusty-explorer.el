@@ -398,7 +398,7 @@ much as possible."
   (macrolet ((ephemeral-p (name)
                `(eq (string-to-char ,name) ?\ )))
     (loop for buffer in buffers
-          for name = (buffer-name buffer)
+          for name = (copy-sequence (buffer-name buffer))
           unless (ephemeral-p name)
           collect name)))
 
