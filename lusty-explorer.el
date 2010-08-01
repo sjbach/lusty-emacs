@@ -398,9 +398,9 @@ much as possible."
   (macrolet ((ephemeral-p (name)
                `(eq (string-to-char ,name) ?\ )))
     (loop for buffer in buffers
-          for name = (copy-sequence (buffer-name buffer))
+          for name = (buffer-name buffer)
           unless (ephemeral-p name)
-          collect name)))
+          collect (copy-sequence name))))
 
 ;; Written kind-of silly for performance.
 (defun lusty-filter-files (file-portion files)
