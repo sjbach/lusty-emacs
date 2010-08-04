@@ -74,7 +74,7 @@
 (require 'cl)
 
 ;; Used only for its faces (for color-theme).
-(require 'font-lock)
+(require 'dired)
 
 (declaim (optimize (speed 3) (safety 0)))
 
@@ -104,10 +104,25 @@ buffer names in the matches window; 0.10 = %10."
   :type 'float
   :group 'lusty-explorer)
 
-(defvar lusty-match-face font-lock-function-name-face)
-(defvar lusty-directory-face font-lock-type-face)
-(defvar lusty-slash-face font-lock-keyword-face)
-(defvar lusty-file-face font-lock-string-face)
+(defface lusty-match-face
+  '((t :inherit highlight))
+  "The face used for the current match."
+  :group 'lusty-explorer)
+
+(defface lusty-directory-face
+  '((t :inherit dired-directory))
+  "The face used for directory completions."
+  :group 'lusty-explorer)
+
+(defface lusty-slash-face
+  '((t :weight bold :foreground "red"))
+  "The face used for the slash after directories."
+  :group 'lusty-explorer)
+
+(defface lusty-file-face
+  nil ;; Use default face...
+  "The face used for normal files."
+  :group 'lusty-explorer)
 
 (defvar lusty-buffer-name " *Lusty-Matches*")
 (defvar lusty-prompt ">> ")
@@ -641,16 +656,17 @@ does not begin with '.'."
 
 (defsubst lusty-propertize-path (path)
   "Propertize the given PATH like so: <dir></> or <file>.
-Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
+Uses the faces `lusty-directory-face', `lusty-slash-face', and
+`lusty-file-face'."
   (let ((last (1- (length path))))
     ;; Note: shouldn't get an empty path, so for performance
     ;; I'm not going to check for that case.
     (if (eq (aref path last) ?/) ; <-- FIXME nonportable?
         (progn
           ;; Directory
-          (put-text-property 0 last 'face lusty-directory-face path)
-          (put-text-property last (1+ last) 'face lusty-slash-face path))
-      (put-text-property 0 (1+ last) 'face lusty-file-face path)))
+          (put-text-property 0 last 'face 'lusty-directory-face path)
+          (put-text-property last (1+ last) 'face 'lusty-slash-face path))
+      (put-text-property 0 (1+ last) 'face 'lusty-file-face path)))
   path)
 
 (defun lusty--compute-layout-matrix (items)
@@ -845,7 +861,7 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
     (destructuring-bind (h-x . h-y) lusty--highlighted-coords
       (setf (aref (aref lusty--matches-matrix h-x) h-y)
             (propertize (aref (aref lusty--matches-matrix h-x) h-y)
-                        'face lusty-match-face)))
+                        'face 'lusty-match-face)))
 
     ;; Print the match matrix.
     (dotimes (y n-rows)
@@ -988,7 +1004,7 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
 ;   (defun minibufferp ()
 ;     (eq (window-buffer (minibuffer-window))
 ;         (current-buffer))))
-; 
+;
 ; (unless (fboundp 'minibuffer-contents-no-properties)
 ;   (defun minibuffer-contents-no-properties ()
 ;     (with-current-buffer (window-buffer (minibuffer-window))
@@ -997,15 +1013,15 @@ Uses `lusty-directory-face', `lusty-slash-face', `lusty-file-face'"
 ;         (if (>= end start)
 ;             (buffer-substring-no-properties start end)
 ;           "")))))
-; 
+;
 ; (unless (fboundp 'minibuffer-prompt-end)
 ;   (defun minibuffer-prompt-end ()
 ;     (1+ (length lusty-prompt))))
-; 
+;
 ; (unless (fboundp 'line-number-at-pos)
 ;   (defun line-number-at-pos (&optional pos)
 ;     (line-number pos)))
-; 
+;
 ; ;; Cribbed from cal-fit-window-to-buffer
 ; (unless (fboundp 'fit-window-to-buffer)
 ;   (defun fit-window-to-buffer (owin max-height)
