@@ -736,6 +736,15 @@ Uses the faces `lusty-directory-face', `lusty-slash-face', and
               (incf total-width separator-length))
         (setq column-widths (nreverse column-widths))
 
+        (when (and (zerop n-columns)
+                   (plusp n-items))
+          (setq n-columns 1)
+          (setq column-widths
+                (list
+                 (reduce 'max lengths-v
+                         :start 0
+                         :end (min n-items max-visible-rows)))))
+
         (let ((matrix
                ;; Create an empty matrix.
                (let ((col-vec (make-vector n-columns nil)))
