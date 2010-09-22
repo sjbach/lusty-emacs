@@ -790,7 +790,8 @@ Uses the faces `lusty-directory-face', `lusty-slash-face', and
                            :size n-items))
          ;; We've already failed for a single row, so start at two.
          (lower 1)
-         (upper (1+ max-visible-rows)))
+         (upper (min (1+ max-visible-rows)
+                     (length lengths-v))))
 
     (while (/= (1+ lower) upper)
       (let* ((n-rows (/ (+ lower upper) 2)) ; Mid-point
