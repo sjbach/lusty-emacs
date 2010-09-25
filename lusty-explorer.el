@@ -70,6 +70,13 @@
 
 ;;; Code:
 
+;; TODO:
+;; - highlight opened buffers in filesystem explorer
+;; - FIX: deal with permission-denied
+;; - C-e/C-a -> last/first column?
+;; - C-f/C-b -> next/previous column?
+;; - config var: C-x d opens highlighted dir instead of current dir
+
 ;; Used for many functions and macros.
 (require 'cl)
 
@@ -135,6 +142,74 @@ buffer names in the matches window; 0.10 = %10."
 (defvar lusty-mode-map nil
   "Minibuffer keymap for `lusty-file-explorer' and `lusty-buffer-explorer'.")
 
+
+(defvar lusty--active-mode nil)
+(defvar lusty--wrapping-ido-p nil)
+(defvar lusty--initial-window-config nil)
+(defvar lusty--previous-minibuffer-contents nil)
+(defvar lusty--current-idle-timer nil)
+(defvar lusty--ignored-extensions-regex
+  ;; Recalculated at execution time.
+  (concat "\\(?:" (regexp-opt completion-ignored-extensions) "\\)$"))
+
+(defvar lusty--highlighted-coords (cons 0 0))  ; (x . y)
+
+;; Set by lusty--compute-layout-matrix
+(defvar lusty--matches-matrix (make-vector 0 nil))
+(defvar lusty--matrix-column-widths '())
+(defvar lusty--matrix-truncated-p nil)
+
+(when lusty--wrapping-ido-p
+  (require 'ido))
+(defvar ido-text) ; silence compiler warning
+
+(defsubst lusty--matrix-empty-p ()
+  (zerop (length lusty--matches-matrix)))
+(defsubst lusty--matrix-coord-valid-p (x y)
+  (not (or (minusp x)
+           (minusp y)
+           (>= x (length lusty--matches-matrix))
+           (>= y (length (aref lusty--matches-matrix 0)))
+           (null (aref (aref lusty--matches-matrix x) y)))))
+
+(defsubst lusty--compute-column-width (start-index end-index lengths-v lengths-h)
+  (if (= start-index end-index)
+      ;; Single-element remainder
+      (aref lengths-v start-index)
+    (let* ((range (cons start-index end-index))
+           (width (gethash range lengths-h)))
+      (or width
+          (let* ((split-point
+                  (+ start-index
+                     (ash (- end-index start-index) -1)))
+                 (first-half
+                  (lusty--compute-column-width
+                   start-index split-point
+                   lengths-v lengths-h))
+                 (second-half
+                  (lusty--compute-column-width
+                   (1+ split-point) end-index
+                   lengths-v lengths-h)))
+            (puthash (cons start-index end-index)
+                     (max first-half second-half)
+                     lengths-h))))))
+
+(defsubst lusty--propertize-path (path)
+  "Propertize the given PATH like so: <dir></> or <file>.
+Uses the faces `lusty-directory-face', `lusty-slash-face', and
+`lusty-file-face'."
+  (let ((last (1- (length path))))
+    ;; Note: shouldn't get an empty path, so for performance
+    ;; I'm not going to check for that case.
+    (if (eq (aref path last) ?/) ; <-- FIXME nonportable?
+        (progn
+          ;; Directory
+          (put-text-property 0 last 'face 'lusty-directory-face path)
+          (put-text-property last (1+ last) 'face 'lusty-slash-face path))
+      (put-text-property 0 (1+ last) 'face 'lusty-file-face path)))
+  path)
+
+
 ;;;###autoload
 (defun lusty-file-explorer ()
   "Launch the file/directory mode of LustyExplorer."
@@ -178,7 +253,7 @@ buffer names in the matches window; 0.10 = %10."
       ;; Unhighlight previous highlight.
       (let ((prev-highlight
              (aref (aref lusty--matches-matrix x) y)))
-        (lusty-propertize-path prev-highlight))
+        (lusty--propertize-path prev-highlight))
 
       ;; Determine the coords of the next highlight.
       (incf y)
@@ -203,7 +278,7 @@ buffer names in the matches window; 0.10 = %10."
       ;; Unhighlight previous highlight.
       (let ((prev-highlight
              (aref (aref lusty--matches-matrix x) y)))
-        (lusty-propertize-path prev-highlight))
+        (lusty--propertize-path prev-highlight))
 
       ;; Determine the coords of the next highlight.
       (decf y)
@@ -232,7 +307,7 @@ buffer names in the matches window; 0.10 = %10."
       ;; Unhighlight previous highlight.
       (let ((prev-highlight
              (aref (aref lusty--matches-matrix x) y)))
-        (lusty-propertize-path prev-highlight))
+        (lusty--propertize-path prev-highlight))
 
       ;; Determine the coords of the next highlight.
       (incf x)
@@ -257,7 +332,7 @@ buffer names in the matches window; 0.10 = %10."
       ;; Unhighlight previous highlight.
       (let ((prev-highlight
              (aref (aref lusty--matches-matrix x) y)))
-        (lusty-propertize-path prev-highlight))
+        (lusty--propertize-path prev-highlight))
 
       ;; Determine the coords of the next highlight.
       (let ((n-cols (length lusty--matches-matrix))
@@ -332,40 +407,7 @@ buffer names in the matches window; 0.10 = %10."
       (lusty-set-minibuffer-text dir)
       (exit-minibuffer))))
 
-;; TODO:
-;; - highlight opened buffers in filesystem explorer
-;; - FIX: deal with permission-denied
-;; - C-e/C-a -> last/first column?
-;; - config var: C-x d opens highlighted dir instead of current dir
 
-(defvar lusty--active-mode nil)
-(defvar lusty--wrapping-ido-p nil)
-(defvar lusty--initial-window-config nil)
-(defvar lusty--previous-minibuffer-contents nil)
-(defvar lusty--current-idle-timer nil)
-(defvar lusty--ignored-extensions-regex
-  ;; Recalculated at execution time.
-  (concat "\\(?:" (regexp-opt completion-ignored-extensions) "\\)$"))
-
-(defvar lusty--highlighted-coords (cons 0 0))  ; (x . y)
-
-;; Set by lusty--compute-layout-matrix
-(defvar lusty--matches-matrix (make-vector 0 nil))
-(defvar lusty--matrix-column-widths '())
-(defvar lusty--matrix-truncated-p nil)
-
-(when lusty--wrapping-ido-p
-  (require 'ido))
-(defvar ido-text) ; silence compiler warning
-
-(defsubst lusty--matrix-empty-p ()
-  (zerop (length lusty--matches-matrix)))
-(defsubst lusty--matrix-coord-valid-p (x y)
-  (not (or (minusp x)
-           (minusp y)
-           (>= x (length lusty--matches-matrix))
-           (>= y (length (aref lusty--matches-matrix 0)))
-           (null (aref (aref lusty--matches-matrix x) y)))))
 
 (defun lusty-sort-by-fuzzy-score (strings abbrev)
   ;; TODO: case-sensitive when abbrev contains capital letter
@@ -654,21 +696,6 @@ does not begin with '.'."
         (sort filtered 'string<)
       (lusty-sort-by-fuzzy-score filtered file-portion))))
 
-(defsubst lusty-propertize-path (path)
-  "Propertize the given PATH like so: <dir></> or <file>.
-Uses the faces `lusty-directory-face', `lusty-slash-face', and
-`lusty-file-face'."
-  (let ((last (1- (length path))))
-    ;; Note: shouldn't get an empty path, so for performance
-    ;; I'm not going to check for that case.
-    (if (eq (aref path last) ?/) ; <-- FIXME nonportable?
-        (progn
-          ;; Directory
-          (put-text-property 0 last 'face 'lusty-directory-face path)
-          (put-text-property last (1+ last) 'face 'lusty-slash-face path))
-      (put-text-property 0 (1+ last) 'face 'lusty-file-face path)))
-  path)
-
 (defun lusty--compute-layout-matrix (items)
   (let* ((max-visible-rows (1- (lusty-max-window-height)))
          (max-width (lusty-max-window-width))
@@ -759,7 +786,7 @@ Uses the faces `lusty-directory-face', `lusty-slash-face', and
                   (y 0)
                   (col-vec (aref matrix 0)))
               (dolist (item items)
-                (aset col-vec y (lusty-propertize-path item))
+                (aset col-vec y (lusty--propertize-path item))
                 (incf y)
                 (when (>= y optimal-n-rows)
                   (incf x)
@@ -835,28 +862,6 @@ Uses the faces `lusty-directory-face', `lusty-slash-face', and
         ;; (-1 for the truncate indicator)
         (values (1- max-visible-rows) t)
       (values upper nil))))
-
-(defsubst lusty--compute-column-width (start-index end-index lengths-v lengths-h)
-  (if (= start-index end-index)
-      ;; Single-element remainder
-      (aref lengths-v start-index)
-    (let* ((range (cons start-index end-index))
-           (width (gethash range lengths-h)))
-      (or width
-          (let* ((split-point
-                  (+ start-index
-                     (ash (- end-index start-index) -1)))
-                 (first-half
-                  (lusty--compute-column-width
-                   start-index split-point
-                   lengths-v lengths-h))
-                 (second-half
-                  (lusty--compute-column-width
-                   (1+ split-point) end-index
-                   lengths-v lengths-h)))
-            (puthash (cons start-index end-index)
-                     (max first-half second-half)
-                     lengths-h))))))
 
 (defun* lusty--display-matches ()
 
