@@ -545,15 +545,30 @@ does not begin with '.'."
 ;; Cribbed with modification from tail-select-lowest-window.
 (defun lusty-lowest-window ()
   "Return the lowest window on the frame."
-  (let* ((current-window (if (minibufferp)
-                             (next-window (selected-window) :skip-mini)
+  (flet ((iterate-non-dedicated-window (start-win direction)
+           ;; Skip dedicated windows when iterating.
+           (let ((iterating-p t)
+                 (next start-win))
+             (while iterating-p
+               (setq next (if (eq direction :forward)
+                              (next-window next :skip-mini)
+                            (previous-window next :skip-mini)))
+               (when (or (not (window-dedicated-p next))
+                         (eq next start-win))
+                 (setq iterating-p nil)))
+             next)))
+  (let* ((current-window (if (or (minibufferp)
+                                 (window-dedicated-p (selected-window)))
+                             (iterate-non-dedicated-window (selected-window)
+                                                           :forward)
                            (selected-window)))
          (lowest-window current-window)
          (bottom-edge (fourth (window-pixel-edges current-window)))
-         (last-window (previous-window current-window :skip-mini))
+         (last-window (iterate-non-dedicated-window current-window :backward))
          (window-search-p t))
     (while window-search-p
-      (let* ((this-window (next-window current-window :skip-mini))
+      (let* ((this-window (iterate-non-dedicated-window current-window
+                                                        :forward))
              (next-bottom-edge (fourth (window-pixel-edges this-window))))
         (when (< bottom-edge next-bottom-edge)
           (setq bottom-edge next-bottom-edge)
@@ -561,7 +576,7 @@ does not begin with '.'."
         (setq current-window this-window)
         (when (eq last-window this-window)
           (setq window-search-p nil))))
-    lowest-window))
+    lowest-window)))
 
 (defun lusty-max-window-height ()
   "Return the expected maximum allowable height of a window on this frame"
