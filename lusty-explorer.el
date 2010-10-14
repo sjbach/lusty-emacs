@@ -608,6 +608,13 @@ does not begin with '.'."
         (lusty-buffer (get-buffer-create lusty-buffer-name)))
     (save-selected-window
       (select-window lowest-window)
+
+      ;; If necessary, expand the window we're going to split so
+      ;; Emacs won't complain it's too small.
+      (when (< (window-height)
+               (* 2 window-min-height))
+        (enlarge-window (- (* 2 window-min-height) (window-height))))
+
       (let ((new-lowest
              ;; Create the window for lusty-buffer
              (split-window-vertically)))
