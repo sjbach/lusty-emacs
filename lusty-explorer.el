@@ -111,6 +111,11 @@ buffer names in the matches window; 0.10 = %10."
   :type 'float
   :group 'lusty-explorer)
 
+(defcustom lusty-case-fold t
+  "Ignore case when matching if non-nil."
+  :type 'boolean
+  :group 'lusty-explorer)
+
 (defface lusty-match-face
   '((t :inherit highlight))
   "The face used for the current match."
@@ -986,12 +991,12 @@ does not begin with '.'."
            ;; Content of LM--build-score-array...
            ;; Inline for interpreted performance.
            (let* ((scores (make-vector str-len LM--score-no-match))
-                  (str-lower (downcase str))
-                  (abbrev-lower (downcase abbrev))
+                  (str-test (if lusty-case-fold (downcase str) str))
+                  (abbrev-test (if lusty-case-fold (downcase abbrev) abbrev))
                   (last-index 0)
                   (started-p nil))
              (dotimes (i abbrev-len)
-               (let ((pos (position (aref abbrev-lower i) str-lower
+               (let ((pos (position (aref abbrev-test i) str-test
                                     :start last-index
                                     :end str-len)))
                  (when (null pos)
