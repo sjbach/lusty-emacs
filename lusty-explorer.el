@@ -66,6 +66,7 @@
 ;; René Kyllingstad
 ;; Alex Schroeder
 ;; Tassilo Horn
+;; Sasha Kovar
 ;;
 
 ;;; Code:
