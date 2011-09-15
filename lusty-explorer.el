@@ -220,33 +220,33 @@ Uses the faces `lusty-directory-face', `lusty-slash-face', and
 (defun lusty-file-explorer ()
   "Launch the file/directory mode of LustyExplorer."
   (interactive)
-  (lusty--define-mode-map)
-  (let* ((lusty--active-mode :file-explorer)
-         (lusty--ignored-extensions-regex
-           (concat "\\(?:" (regexp-opt completion-ignored-extensions) "\\)$"))
-         (minibuffer-local-filename-completion-map lusty-mode-map)
-         (file
-          ;; read-file-name is silly in that if the result is equal to the
-          ;; dir argument, it gets converted to the default-filename
-          ;; argument.  Set it explicitly to "" so if lusty-launch-dired is
-          ;; called in the directory we start at, the result is that directory
-          ;; instead of the name of the current buffer.
-          (lusty--run 'read-file-name default-directory "")))
-    (when file
-      (switch-to-buffer
-       (find-file-noselect
-        (expand-file-name file))))))
+  (let ((lusty--active-mode :file-explorer))
+    (lusty--define-mode-map)
+    (let* ((lusty--ignored-extensions-regex
+	    (concat "\\(?:" (regexp-opt completion-ignored-extensions) "\\)$"))
+	   (minibuffer-local-filename-completion-map lusty-mode-map)
+	   (file
+	    ;; read-file-name is silly in that if the result is equal to the
+	    ;; dir argument, it gets converted to the default-filename
+	    ;; argument.  Set it explicitly to "" so if lusty-launch-dired is
+	    ;; called in the directory we start at, the result is that directory
+	    ;; instead of the name of the current buffer.
+	    (lusty--run 'read-file-name default-directory "")))
+      (when file
+	(switch-to-buffer
+	 (find-file-noselect
+	  (expand-file-name file)))))))
 
 ;;;###autoload
 (defun lusty-buffer-explorer ()
   "Launch the buffer mode of LustyExplorer."
   (interactive)
-  (lusty--define-mode-map)
-  (let* ((lusty--active-mode :buffer-explorer)
-         (minibuffer-local-completion-map lusty-mode-map)
-         (buffer (lusty--run 'read-buffer)))
-    (when buffer
-      (switch-to-buffer buffer))))
+  (let ((lusty--active-mode :buffer-explorer))
+    (lusty--define-mode-map)
+    (let* ((minibuffer-local-completion-map lusty-mode-map)
+	   (buffer (lusty--run 'read-buffer)))
+      (when buffer
+	(switch-to-buffer buffer)))))
 
 ;;;###autoload
 (defun lusty-highlight-next ()
