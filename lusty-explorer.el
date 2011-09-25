@@ -223,19 +223,19 @@ Uses the faces `lusty-directory-face', `lusty-slash-face', and
   (let ((lusty--active-mode :file-explorer))
     (lusty--define-mode-map)
     (let* ((lusty--ignored-extensions-regex
-	    (concat "\\(?:" (regexp-opt completion-ignored-extensions) "\\)$"))
-	   (minibuffer-local-filename-completion-map lusty-mode-map)
-	   (file
-	    ;; read-file-name is silly in that if the result is equal to the
-	    ;; dir argument, it gets converted to the default-filename
-	    ;; argument.  Set it explicitly to "" so if lusty-launch-dired is
-	    ;; called in the directory we start at, the result is that directory
-	    ;; instead of the name of the current buffer.
-	    (lusty--run 'read-file-name default-directory "")))
+            (concat "\\(?:" (regexp-opt completion-ignored-extensions) "\\)$"))
+           (minibuffer-local-filename-completion-map lusty-mode-map)
+           (file
+            ;; read-file-name is silly in that if the result is equal to the
+            ;; dir argument, it gets converted to the default-filename
+            ;; argument.  Set it explicitly to "" so if lusty-launch-dired is
+            ;; called in the directory we start at, the result is that directory
+            ;; instead of the name of the current buffer.
+            (lusty--run 'read-file-name default-directory "")))
       (when file
-	(switch-to-buffer
-	 (find-file-noselect
-	  (expand-file-name file)))))))
+        (switch-to-buffer
+         (find-file-noselect
+          (expand-file-name file)))))))
 
 ;;;###autoload
 (defun lusty-buffer-explorer ()
@@ -244,9 +244,9 @@ Uses the faces `lusty-directory-face', `lusty-slash-face', and
   (let ((lusty--active-mode :buffer-explorer))
     (lusty--define-mode-map)
     (let* ((minibuffer-local-completion-map lusty-mode-map)
-	   (buffer (lusty--run 'read-buffer)))
+           (buffer (lusty--run 'read-buffer)))
       (when buffer
-	(switch-to-buffer buffer)))))
+        (switch-to-buffer buffer)))))
 
 ;;;###autoload
 (defun lusty-highlight-next ()
@@ -1070,22 +1070,22 @@ does not begin with '.'."
 ;   (defun fit-window-to-buffer (owin max-height)
 ;     (interactive)
 ;     (if owin
-; 	(delete-other-windows))
+;       (delete-other-windows))
 ;     (when (> (length (window-list nil 'nomini)) 1)
 ;       (let* ((window (selected-window))
-; 	     (buf (window-buffer window))
-; 	     (height (window-displayed-height (selected-window)))
-; 	     (new-height
+;            (buf (window-buffer window))
+;            (height (window-displayed-height (selected-window)))
+;            (new-height
 ;               (min (with-current-buffer buf
 ;                      (count-lines (point-min) (point-max)))
 ;                    max-height))
-; 	     (diff (- new-height height)))
-; 	(unless (zerop diff)
-; 	  (enlarge-window diff))
-; 	(let ((end (with-current-buffer buf (point-max))))
-; 	  (while (and (> (length (window-list nil 'nomini)) 1)
-; 		      (not (pos-visible-in-window-p end)))
-; 	    (enlarge-window 1)))))))
+;            (diff (- new-height height)))
+;       (unless (zerop diff)
+;         (enlarge-window diff))
+;       (let ((end (with-current-buffer buf (point-max))))
+;         (while (and (> (length (window-list nil 'nomini)) 1)
+;                     (not (pos-visible-in-window-p end)))
+;           (enlarge-window 1)))))))
 
 
 (provide 'lusty-explorer)
