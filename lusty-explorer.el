@@ -375,7 +375,7 @@ Uses the faces `lusty-directory-face', `lusty-slash-face', and
          (let* ((path (minibuffer-contents-no-properties))
                 (last-char (aref path (1- (length path)))))
            (if (and (file-directory-p path)
-                   (not (eq last-char ?/))) ; <-- FIXME nonportable?
+		    (not (eq last-char ?/))) ; <-- FIXME nonportable?
                ;; Current path is a directory, sans-slash.  Open in dired.
                (lusty-select-current-name)
              ;; Just activate the current match as normal.
@@ -459,7 +459,7 @@ much as possible."
 (defun lusty-filter-buffers (buffers)
   "Return BUFFERS converted to strings with hidden buffers removed."
   (macrolet ((ephemeral-p (name)
-               `(eq (string-to-char ,name) ?\ )))
+			  `(eq (string-to-char ,name) ?\ )))
     (loop for buffer in buffers
           for name = (buffer-name buffer)
           unless (ephemeral-p name)
@@ -470,11 +470,11 @@ much as possible."
   "Return FILES with './' removed and hidden files if FILE-PORTION
 does not begin with '.'."
   (macrolet ((leading-dot-p (str)
-               `(eq (string-to-char ,str) ?.))
+			    `(eq (string-to-char ,str) ?.))
              (pwd-p (str)
-               `(string= ,str "./"))
+		    `(string= ,str "./"))
              (ignored-p (name)
-               `(string-match lusty--ignored-extensions-regex ,name)))
+			`(string-match lusty--ignored-extensions-regex ,name)))
     (let ((filtered-files '()))
       (if (leading-dot-p file-portion)
           (dolist (file files)
@@ -552,37 +552,37 @@ does not begin with '.'."
 (defun lusty-lowest-window ()
   "Return the lowest window on the frame."
   (flet ((iterate-non-dedicated-window (start-win direction)
-           ;; Skip dedicated windows when iterating.
-           (let ((iterating-p t)
-                 (next start-win))
-             (while iterating-p
-               (setq next (if (eq direction :forward)
-                              (next-window next :skip-mini)
-                            (previous-window next :skip-mini)))
-               (when (or (not (window-dedicated-p next))
-                         (eq next start-win))
-                 (setq iterating-p nil)))
-             next)))
-  (let* ((current-window (if (or (minibufferp)
-                                 (window-dedicated-p (selected-window)))
-                             (iterate-non-dedicated-window (selected-window)
-                                                           :forward)
-                           (selected-window)))
-         (lowest-window current-window)
-         (bottom-edge (fourth (window-pixel-edges current-window)))
-         (last-window (iterate-non-dedicated-window current-window :backward))
-         (window-search-p t))
-    (while window-search-p
-      (let* ((this-window (iterate-non-dedicated-window current-window
-                                                        :forward))
-             (next-bottom-edge (fourth (window-pixel-edges this-window))))
-        (when (< bottom-edge next-bottom-edge)
-          (setq bottom-edge next-bottom-edge)
-          (setq lowest-window this-window))
-        (setq current-window this-window)
-        (when (eq last-window this-window)
-          (setq window-search-p nil))))
-    lowest-window)))
+				       ;; Skip dedicated windows when iterating.
+				       (let ((iterating-p t)
+					     (next start-win))
+					 (while iterating-p
+					   (setq next (if (eq direction :forward)
+							  (next-window next :skip-mini)
+							(previous-window next :skip-mini)))
+					   (when (or (not (window-dedicated-p next))
+						     (eq next start-win))
+					     (setq iterating-p nil)))
+					 next)))
+    (let* ((current-window (if (or (minibufferp)
+				   (window-dedicated-p (selected-window)))
+			       (iterate-non-dedicated-window (selected-window)
+							     :forward)
+			     (selected-window)))
+	   (lowest-window current-window)
+	   (bottom-edge (fourth (window-pixel-edges current-window)))
+	   (last-window (iterate-non-dedicated-window current-window :backward))
+	   (window-search-p t))
+      (while window-search-p
+	(let* ((this-window (iterate-non-dedicated-window current-window
+							  :forward))
+	       (next-bottom-edge (fourth (window-pixel-edges this-window))))
+	  (when (< bottom-edge next-bottom-edge)
+	    (setq bottom-edge next-bottom-edge)
+	    (setq lowest-window this-window))
+	  (setq current-window this-window)
+	  (when (eq last-window this-window)
+	    (setq window-search-p nil))))
+      lowest-window)))
 
 (defun lusty-max-window-height ()
   "Return the expected maximum allowable height of a window on this frame"
@@ -679,9 +679,9 @@ does not begin with '.'."
   "Return a list of buffers ordered with those currently visible at the end."
   (let ((visible-buffers '()))
     (flet ((add-buffer-maybe (window)
-             (let ((b (window-buffer window)))
-               (unless (memq b visible-buffers)
-                 (push b visible-buffers)))))
+			     (let ((b (window-buffer window)))
+			       (unless (memq b visible-buffers)
+				 (push b visible-buffers)))))
       (walk-windows 'add-buffer-maybe nil 'visible))
     (let ((non-visible-buffers
            (loop for b in (buffer-list)
@@ -714,9 +714,9 @@ does not begin with '.'."
          (file-portion (file-name-nondirectory path))
          (files
           (and dir
-               ; NOTE: directory-files is quicker but
-               ;       doesn't append slash for directories.
-               ;(directory-files dir nil nil t)
+					; NOTE: directory-files is quicker but
+					;       doesn't append slash for directories.
+					;(directory-files dir nil nil t)
                (file-name-all-completions "" dir)))
          (filtered (lusty-filter-files file-portion files)))
     (if (or (string= file-portion "")
@@ -776,8 +776,8 @@ does not begin with '.'."
         (loop with total-width = 0
               for start = 0 then end
               for end = optimal-n-rows then
-                        (min (length lengths-v)
-                             (+ end optimal-n-rows))
+	      (min (length lengths-v)
+		   (+ end optimal-n-rows))
               while (< start end)
               for col-width = (reduce 'max lengths-v
                                       :start start
@@ -841,7 +841,7 @@ does not begin with '.'."
           ;; Hashes by cons, e.g. (0 . 2), representing the width
           ;; of the column bounded by the range of [0..2].
           (make-hash-table :test 'equal
-                           ; not scientific
+					; not scientific
                            :size n-items))
          ;; We've already failed for a single row, so start at two.
          (lower 1)
@@ -985,54 +985,54 @@ does not begin with '.'."
   (let ((str-len (length str))
         (abbrev-len (length abbrev)))
     (cond ;((string= abbrev "")  ; Disabled; can't happen in practice
-          ; LM--score-trailing)
-          ((> abbrev-len str-len)
-           LM--score-no-match)
-          (t
-           ;; Content of LM--build-score-array...
-           ;; Inline for interpreted performance.
-           (let* ((scores (make-vector str-len LM--score-no-match))
-                  (str-test (if lusty-case-fold (downcase str) str))
-                  (abbrev-test (if lusty-case-fold (downcase abbrev) abbrev))
-                  (last-index 0)
-                  (started-p nil))
-             (dotimes (i abbrev-len)
-               (let ((pos (position (aref abbrev-test i) str-test
-                                    :start last-index
-                                    :end str-len)))
-                 (when (null pos)
-                   (return-from LM-score LM--score-no-match))
-                 (when (zerop pos)
-                   (setq started-p t))
-                 (cond ((and (plusp pos)
-                             (memq (aref str (1- pos))
-                                   '(?. ?_ ?- ?\ )))
-                        ;; New word.
-                        (aset scores (1- pos) LM--score-match)
-                        (fill scores LM--score-buffer
-                              :start last-index
-                              :end (1- pos)))
-                       ((and (>= (aref str pos) ?A)
-                             (<= (aref str pos) ?Z))
-                        ;; Upper case.
-                        (fill scores LM--score-buffer
-                              :start last-index
-                              :end pos))
-                       (t
-                        (fill scores LM--score-no-match
-                              :start last-index
-                              :end pos)))
-                 (aset scores pos LM--score-match)
-                 (setq last-index (1+ pos))))
+					; LM--score-trailing)
+     ((> abbrev-len str-len)
+      LM--score-no-match)
+     (t
+      ;; Content of LM--build-score-array...
+      ;; Inline for interpreted performance.
+      (let* ((scores (make-vector str-len LM--score-no-match))
+	     (str-test (if lusty-case-fold (downcase str) str))
+	     (abbrev-test (if lusty-case-fold (downcase abbrev) abbrev))
+	     (last-index 0)
+	     (started-p nil))
+	(dotimes (i abbrev-len)
+	  (let ((pos (position (aref abbrev-test i) str-test
+			       :start last-index
+			       :end str-len)))
+	    (when (null pos)
+	      (return-from LM-score LM--score-no-match))
+	    (when (zerop pos)
+	      (setq started-p t))
+	    (cond ((and (plusp pos)
+			(memq (aref str (1- pos))
+			      '(?. ?_ ?- ?\ )))
+		   ;; New word.
+		   (aset scores (1- pos) LM--score-match)
+		   (fill scores LM--score-buffer
+			 :start last-index
+			 :end (1- pos)))
+		  ((and (>= (aref str pos) ?A)
+			(<= (aref str pos) ?Z))
+		   ;; Upper case.
+		   (fill scores LM--score-buffer
+			 :start last-index
+			 :end pos))
+		  (t
+		   (fill scores LM--score-no-match
+			 :start last-index
+			 :end pos)))
+	    (aset scores pos LM--score-match)
+	    (setq last-index (1+ pos))))
 
-             (let ((trailing-score
-                    (if started-p
-                        LM--score-trailing-but-started
-                      LM--score-trailing)))
-               (fill scores trailing-score :start last-index))
+	(let ((trailing-score
+	       (if started-p
+		   LM--score-trailing-but-started
+		 LM--score-trailing)))
+	  (fill scores trailing-score :start last-index))
 
-             (/ (reduce '+ scores)
-                str-len ))))))
+	(/ (reduce '+ scores)
+	   str-len ))))))
 
 ;;
 ;; End LiquidMetal
