@@ -504,6 +504,7 @@ does not begin with '.'."
              (file-portion (file-name-nondirectory path))
              (normalized-dir (lusty-normalize-dir dir)))
         ;; Clean up the path when selecting, in case we recurse.
+        (remove-text-properties 0 (length match) '(face) match)
         (lusty-set-minibuffer-text normalized-dir match)
         (if (file-directory-p (concat normalized-dir match))
             (progn
