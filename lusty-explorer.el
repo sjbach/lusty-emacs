@@ -934,6 +934,17 @@ does not begin with '.'."
   (let ((fill-column (window-width)))
     (center-line)))
 
+(defun lusty-delete-backward (count)
+  "Delete char backwards, or at beginning of buffer, go up one level."
+  (interactive "P")
+  (if count
+      (call-interactively 'delete-backward-char)
+    (if (= (char-before) ?/)
+        (progn
+          (backward-delete-char 1)
+          (while (/= (char-before) ?/)
+            (backward-delete-char 1)))
+      (call-interactively 'delete-backward-char))))
 
 (defun lusty--define-mode-map ()
   ;; Re-generated every run so that it can inherit new functions.
@@ -941,6 +952,7 @@ does not begin with '.'."
     (set-keymap-parent map minibuffer-local-map)
     (define-key map (kbd "RET") 'lusty-open-this)
     (define-key map "\t" 'lusty-select-match)
+    (define-key map [remap delete-backward-char] 'lusty-delete-backward)
     (define-key map "\C-n" 'lusty-highlight-next)
     (define-key map "\C-p" 'lusty-highlight-previous)
     (define-key map "\C-s" 'lusty-highlight-next)
