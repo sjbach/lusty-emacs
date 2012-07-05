@@ -2,10 +2,10 @@
 ;;
 ;; Copyright (C) 2008-2010 Stephen Bach <this-file@sjbach.com>
 ;;
-;; Version: 2.4
+;; Version: 2.5
 ;; Created: July 27, 2010
 ;; Keywords: convenience, files, matching
-;; Compatibility: GNU Emacs 22 and 23
+;; Compatibility: GNU Emacs 22, 23, and 24
 ;;
 ;; Permission is hereby granted to use and distribute this code, with or
 ;; without modifications, provided that this copyright notice is copied with
@@ -550,42 +550,6 @@ does not begin with '.'."
               (run-with-idle-timer lusty-idle-seconds-per-refresh nil
                                    'lusty-refresh-matches-buffer))))))
 
-;; Cribbed with modification from tail-select-lowest-window.
-(defun lusty-lowest-window ()
-  "Return the lowest window on the frame."
-  (flet ((iterate-non-dedicated-window (start-win direction)
-				       ;; Skip dedicated windows when iterating.
-				       (let ((iterating-p t)
-					     (next start-win))
-					 (while iterating-p
-					   (setq next (if (eq direction :forward)
-							  (next-window next :skip-mini)
-							(previous-window next :skip-mini)))
-					   (when (or (not (window-dedicated-p next))
-						     (eq next start-win))
-					     (setq iterating-p nil)))
-					 next)))
-    (let* ((current-window (if (or (minibufferp)
-				   (window-dedicated-p (selected-window)))
-			       (iterate-non-dedicated-window (selected-window)
-							     :forward)
-			     (selected-window)))
-	   (lowest-window current-window)
-	   (bottom-edge (fourth (window-pixel-edges current-window)))
-	   (last-window (iterate-non-dedicated-window current-window :backward))
-	   (window-search-p t))
-      (while window-search-p
-	(let* ((this-window (iterate-non-dedicated-window current-window
-							  :forward))
-	       (next-bottom-edge (fourth (window-pixel-edges this-window))))
-	  (when (< bottom-edge next-bottom-edge)
-	    (setq bottom-edge next-bottom-edge)
-	    (setq lowest-window this-window))
-	  (setq current-window this-window)
-	  (when (eq last-window this-window)
-	    (setq window-search-p nil))))
-      lowest-window)))
-
 (defun lusty-max-window-height ()
   "Return the expected maximum allowable height of a window on this frame"
   ;; FIXME: are there cases where this is incorrect?
@@ -611,35 +575,19 @@ does not begin with '.'."
 (defun lusty-max-window-width ()
   (frame-width))
 
+(defun lusty--get-root-window (&optional win)
+  (let* ((win (or win (car (window-list nil 1))))
+	 (parent (window-parent win)))
+    (if parent
+	(lusty--get-root-window parent)
+      win)))
+
 (defun lusty--setup-matches-window ()
-  (let ((lowest-window (lusty-lowest-window))
-        (lusty-buffer (get-buffer-create lusty-buffer-name)))
+  (let ((lusty-buffer (get-buffer-create lusty-buffer-name)))
     (save-selected-window
-      (select-window lowest-window)
-
-      ;; If necessary, expand the window we're going to split so
-      ;; Emacs won't complain it's too small.
-      (when (< (window-height)
-               (* 2 window-min-height))
-        (enlarge-window (- (* 2 window-min-height) (window-height))))
-
-      (let ((new-lowest
-             ;; Create the window for lusty-buffer
-             (split-window-vertically)))
-        (select-window new-lowest)
-        ;; Try to get a window covering the full frame.  Sometimes
-        ;; this takes more than one try, but we don't want to do it
-        ;; infinitely in case of weird setups.
-        (loop repeat 5
-              while (< (window-width) (frame-width))
-              do
-              (condition-case nil
-                  (enlarge-window-horizontally (- (frame-width)
-                                                  (window-width)))
-                (error
-                 (return))))
-        (set-window-buffer new-lowest lusty-buffer))))
-  ;;
+      (let ((lusty-win (split-window (lusty--get-root-window))))
+        (select-window lusty-win)
+        (set-window-buffer lusty-win lusty-buffer))))
   ;; Window configuration may be restored intermittently.
   (setq lusty--initial-window-config (current-window-configuration)))
 
