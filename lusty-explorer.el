@@ -504,6 +504,7 @@ does not begin with '.'."
              (file-portion (file-name-nondirectory path))
              (normalized-dir (lusty-normalize-dir dir)))
         ;; Clean up the path when selecting, in case we recurse.
+        (remove-text-properties 0 (length match) '(face) match)
         (lusty-set-minibuffer-text normalized-dir match)
         (if (file-directory-p (concat normalized-dir match))
             (progn
@@ -934,6 +935,19 @@ does not begin with '.'."
   (let ((fill-column (window-width)))
     (center-line)))
 
+(defun lusty-delete-backward (count)
+  "Delete char backwards, or at beginning of buffer, go up one level."
+  (interactive "P")
+  (if count
+      (call-interactively 'delete-backward-char)
+    (if (= (char-before) ?/)
+        (progn
+          (backward-delete-char 1)
+          (while (and (/= (char-before) ?/)
+                      (not (get-text-property (1- (point)) 'read-only)))
+            (backward-delete-char 1)))
+      (unless (get-text-property (1- (point)) 'read-only)
+        (call-interactively 'delete-backward-char)))))
 
 (defun lusty--define-mode-map ()
   ;; Re-generated every run so that it can inherit new functions.
@@ -941,6 +955,7 @@ does not begin with '.'."
     (set-keymap-parent map minibuffer-local-map)
     (define-key map (kbd "RET") 'lusty-open-this)
     (define-key map "\t" 'lusty-select-match)
+    (define-key map [remap delete-backward-char] 'lusty-delete-backward)
     (define-key map "\C-n" 'lusty-highlight-next)
     (define-key map "\C-p" 'lusty-highlight-previous)
     (define-key map "\C-s" 'lusty-highlight-next)
