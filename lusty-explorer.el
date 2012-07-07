@@ -943,9 +943,11 @@ does not begin with '.'."
     (if (= (char-before) ?/)
         (progn
           (backward-delete-char 1)
-          (while (/= (char-before) ?/)
+          (while (and (/= (char-before) ?/)
+                      (not (get-text-property (1- (point)) 'read-only)))
             (backward-delete-char 1)))
-      (call-interactively 'delete-backward-char))))
+      (unless (get-text-property (1- (point)) 'read-only)
+        (call-interactively 'delete-backward-char)))))
 
 (defun lusty--define-mode-map ()
   ;; Re-generated every run so that it can inherit new functions.
