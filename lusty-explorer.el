@@ -1,6 +1,6 @@
 ;;; lusty-explorer.el --- Dynamic filesystem explorer and buffer switcher
 ;;
-;; Copyright (C) 2008-2010 Stephen Bach <http://items.sjbach.com/about>
+;; Copyright (C) 2008 Stephen Bach <http://items.sjbach.com/about>
 ;;
 ;; Version: 2.4
 ;; Created: July 27, 2010
