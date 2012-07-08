@@ -67,6 +67,7 @@
 ;; Alex Schroeder
 ;; Tassilo Horn
 ;; Sasha Kovar
+;; John Wiegley
 ;;
 
 ;;; Code:
