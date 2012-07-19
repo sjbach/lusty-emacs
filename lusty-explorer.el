@@ -957,12 +957,19 @@ does not begin with '.'."
     (define-key map (kbd "RET") 'lusty-open-this)
     (define-key map "\t" 'lusty-select-match)
     (define-key map [remap delete-backward-char] 'lusty-delete-backward)
+
     (define-key map "\C-n" 'lusty-highlight-next)
     (define-key map "\C-p" 'lusty-highlight-previous)
     (define-key map "\C-s" 'lusty-highlight-next)
     (define-key map "\C-r" 'lusty-highlight-previous)
     (define-key map "\C-f" 'lusty-highlight-next-column)
     (define-key map "\C-b" 'lusty-highlight-previous-column)
+
+    (define-key map (kbd "<left>") 'lusty-highlight-previous-column)
+    (define-key map (kbd "<right>") 'lusty-highlight-next-column)
+    (define-key map (kbd "<up>") 'lusty-highlight-previous)
+    (define-key map (kbd "<down>") 'lusty-highlight-next)
+
     (define-key map "\C-xd" 'lusty-launch-dired)
     (define-key map "\C-xe" 'lusty-select-current-name)
     (setq lusty-mode-map map))
