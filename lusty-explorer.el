@@ -646,17 +646,10 @@ does not begin with '.'."
 	(setq lusty--initial-window-config (current-window-configuration))))
 
   ;; Emacs 24+
-  (defun lusty--get-root-window (&optional win)
-    (let* ((win (or win (car (window-list nil 1))))
-	   (parent (window-parent win)))
-      (if parent
-	  (lusty--get-root-window parent)
-	win)))
-
   (defun lusty--setup-matches-window ()
     (let ((lusty-buffer (get-buffer-create lusty-buffer-name)))
       (save-selected-window
-	(let ((lusty-win (split-window (lusty--get-root-window))))
+	(let ((lusty-win (split-window (frame-root-window))))
 	  (select-window lusty-win)
 	  (set-window-buffer lusty-win lusty-buffer))))
     ;; Window configuration may be restored intermittently.
