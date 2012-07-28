@@ -2,10 +2,10 @@
 ;;
 ;; Copyright (C) 2008 Stephen Bach <http://items.sjbach.com/about>
 ;;
-;; Version: 2.4
+;; Version: 2.5
 ;; Created: July 27, 2010
 ;; Keywords: convenience, files, matching
-;; Compatibility: GNU Emacs 22 and 23
+;; Compatibility: GNU Emacs 22, 23, and 24
 ;;
 ;; Permission is hereby granted to use and distribute this code, with or
 ;; without modifications, provided that this copyright notice is copied with
@@ -551,7 +551,33 @@ does not begin with '.'."
               (run-with-idle-timer lusty-idle-seconds-per-refresh nil
                                    'lusty-refresh-matches-buffer))))))
 
-;; Cribbed with modification from tail-select-lowest-window.
+(defun lusty-max-window-height ()
+  "Return the expected maximum allowable height of a window on this frame"
+  ;; FIXME: are there cases where this is incorrect?
+  (let* ((lusty-window
+          (get-buffer-window
+           (get-buffer-create lusty-buffer-name)))
+         (other-window
+          ;; In case the *LustyMatches* window was closed
+          (or lusty-window
+              (if (minibufferp)
+                  (next-window (selected-window) :skip-mini)
+                (selected-window))))
+         (test-window
+          (or lusty-window other-window)))
+    (assert test-window)
+    (- (frame-height)
+       ;; Account for modeline and/or header...
+       (- (window-height test-window)
+          (window-body-height test-window))
+       ;; And minibuffer height.
+       (window-height (minibuffer-window)))))
+
+(defun lusty-max-window-width ()
+  (frame-width))
+
+;; Only needed for Emacs 23 compatibility, because the Emacs root window in a
+;; already split frame is not an alive window.
 (defun lusty-lowest-window ()
   "Return the lowest window on the frame."
   (flet ((iterate-non-dedicated-window (start-win direction)
@@ -587,60 +613,17 @@ does not begin with '.'."
           (setq window-search-p nil))))
     lowest-window)))
 
-(defun lusty-max-window-height ()
-  "Return the expected maximum allowable height of a window on this frame"
-  ;; FIXME: are there cases where this is incorrect?
-  (let* ((lusty-window
-          (get-buffer-window
-           (get-buffer-create lusty-buffer-name)))
-         (other-window
-          ;; In case the *LustyMatches* window was closed
-          (or lusty-window
-              (if (minibufferp)
-                  (next-window (selected-window) :skip-mini)
-                (selected-window))))
-         (test-window
-          (or lusty-window other-window)))
-    (assert test-window)
-    (- (frame-height)
-       ;; Account for modeline and/or header...
-       (- (window-height test-window)
-          (window-body-height test-window))
-       ;; And minibuffer height.
-       (window-height (minibuffer-window)))))
-
-(defun lusty-max-window-width ()
-  (frame-width))
-
 (defun lusty--setup-matches-window ()
-  (let ((lowest-window (lusty-lowest-window))
-        (lusty-buffer (get-buffer-create lusty-buffer-name)))
+  (let ((lusty-buffer (get-buffer-create lusty-buffer-name)))
     (save-selected-window
-      (select-window lowest-window)
-
-      ;; If necessary, expand the window we're going to split so
-      ;; Emacs won't complain it's too small.
-      (when (< (window-height)
-               (* 2 window-min-height))
-        (enlarge-window (- (* 2 window-min-height) (window-height))))
-
-      (let ((new-lowest
-             ;; Create the window for lusty-buffer
-             (split-window-vertically)))
-        (select-window new-lowest)
-        ;; Try to get a window covering the full frame.  Sometimes
-        ;; this takes more than one try, but we don't want to do it
-        ;; infinitely in case of weird setups.
-        (loop repeat 5
-              while (< (window-width) (frame-width))
-              do
-              (condition-case nil
-                  (enlarge-window-horizontally (- (frame-width)
-                                                  (window-width)))
-                (error
-                 (return))))
-        (set-window-buffer new-lowest lusty-buffer))))
-  ;;
+      (let* ((win (frame-root-window))
+	     ;; Emacs 23 compatibility
+	     (win (if (window-live-p win)
+		      win
+		    (lusty-lowest-window)))
+	     (lusty-win (split-window win)))
+	(select-window lusty-win)
+	(set-window-buffer lusty-win lusty-buffer))))
   ;; Window configuration may be restored intermittently.
   (setq lusty--initial-window-config (current-window-configuration)))
 
