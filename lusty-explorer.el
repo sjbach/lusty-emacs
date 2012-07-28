@@ -60,12 +60,12 @@
 
 ;;; Contributors:
 ;;
+;; Tassilo Horn
 ;; Jan Rehders
 ;; Hugo Schmitt
 ;; Volkan Yazici
 ;; René Kyllingstad
 ;; Alex Schroeder
-;; Tassilo Horn
 ;; Sasha Kovar
 ;; John Wiegley
 ;; Johan Walles
