@@ -617,13 +617,13 @@ does not begin with '.'."
   (let ((lusty-buffer (get-buffer-create lusty-buffer-name)))
     (save-selected-window
       (let* ((win (frame-root-window))
-	     ;; Emacs 23 compatibility
-	     (win (if (window-live-p win)
-		      win
-		    (lusty-lowest-window)))
-	     (lusty-win (split-window win)))
-	(select-window lusty-win)
-	(set-window-buffer lusty-win lusty-buffer))))
+             ;; Emacs 23 compatibility
+             (win (if (window-live-p win)
+                      win
+                    (lusty-lowest-window)))
+             (lusty-win (split-window win)))
+        (select-window lusty-win)
+        (set-window-buffer lusty-win lusty-buffer))))
   ;; Window configuration may be restored intermittently.
   (setq lusty--initial-window-config (current-window-configuration)))
 
