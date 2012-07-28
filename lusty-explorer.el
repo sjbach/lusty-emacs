@@ -616,14 +616,14 @@ does not begin with '.'."
 (defun lusty--setup-matches-window ()
   (let ((lusty-buffer (get-buffer-create lusty-buffer-name)))
     (save-selected-window
-      (let* ((win (frame-root-window))
+      (let* ((window (frame-root-window))
              ;; Emacs 23 compatibility
-             (win (if (window-live-p win)
-                      win
+             (window (if (window-live-p window)
+                      window
                     (lusty-lowest-window)))
-             (lusty-win (split-window win)))
-        (select-window lusty-win)
-        (set-window-buffer lusty-win lusty-buffer))))
+             (lusty-window (split-window window)))
+        (select-window lusty-window)
+        (set-window-buffer lusty-window lusty-buffer))))
   ;; Window configuration may be restored intermittently.
   (setq lusty--initial-window-config (current-window-configuration)))
 
