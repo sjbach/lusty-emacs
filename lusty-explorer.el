@@ -114,6 +114,11 @@ buffer names in the matches window; 0.10 = %10."
   :type 'float
   :group 'lusty-explorer)
 
+(defcustom lusty-fully-expand-matches-window-p t
+  "Whether or not to expand the matches window across the whole frame."
+  :type 'boolean
+  :group 'lusty-explorer)
+
 (defcustom lusty-case-fold t
   "Ignore case when matching if non-nil."
   :type 'boolean
@@ -576,8 +581,8 @@ does not begin with '.'."
 (defun lusty-max-window-width ()
   (frame-width))
 
-;; Only needed for Emacs 23 compatibility, because the Emacs root window in a
-;; already split frame is not an alive window.
+;; Only needed for Emacs 23 compatibility, because the Emacs root window in an
+;; already split frame is not a living window.
 (defun lusty-lowest-window ()
   "Return the lowest window on the frame."
   (flet ((iterate-non-dedicated-window (start-win direction)
@@ -616,13 +621,25 @@ does not begin with '.'."
 (defun lusty--setup-matches-window ()
   (let ((lusty-buffer (get-buffer-create lusty-buffer-name)))
     (save-selected-window
-      (let* ((window (frame-root-window))
+      (let* ((root-window (frame-root-window))
              ;; Emacs 23 compatibility
-             (window (if (window-live-p window)
-                         window
+             (window (if (window-live-p root-window)
+                         root-window
                        (lusty-lowest-window)))
              (lusty-window (split-window window)))
         (select-window lusty-window)
+        (when lusty-fully-expand-matches-window-p
+          ;; Try to get a window covering the full frame.  Sometimes
+          ;; this takes more than one try, but we don't want to do it
+          ;; infinitely in case of weird setups.
+          (loop repeat 5
+                while (< (window-width) (frame-width))
+                do
+                (condition-case nil
+                    (enlarge-window-horizontally (- (frame-width)
+                                                    (window-width)))
+                  (error
+                   (return)))))
         (set-window-buffer lusty-window lusty-buffer))))
   ;; Window configuration may be restored intermittently.
   (setq lusty--initial-window-config (current-window-configuration)))
