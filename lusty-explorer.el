@@ -68,6 +68,7 @@
 ;; Tassilo Horn
 ;; Sasha Kovar
 ;; John Wiegley
+;; Johan Walles
 ;;
 
 ;;; Code:
