@@ -619,8 +619,8 @@ does not begin with '.'."
       (let* ((window (frame-root-window))
              ;; Emacs 23 compatibility
              (window (if (window-live-p window)
-                      window
-                    (lusty-lowest-window)))
+                         window
+                       (lusty-lowest-window)))
              (lusty-window (split-window window)))
         (select-window lusty-window)
         (set-window-buffer lusty-window lusty-buffer))))
