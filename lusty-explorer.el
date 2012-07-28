@@ -55,7 +55,7 @@
 ;;   completion-ignored-extensions
 ;;
 ;; Latest release: <http://www.emacswiki.org/cgi-bin/wiki/LustyExplorer>
-;; Development:    <http://github.com/sjbach/lusty/tree/master>
+;; Development:    <http://github.com/sjbach/lusty-emacs>
 ;;
 
 ;;; Contributors:
