@@ -1,6 +1,4 @@
-;; -*- mode: emacs-lisp -*-
-
-;;; lusty-explorer.el --- Dynamic filesystem explorer and buffer switcher
+;;; lusty-explorer.el --- Dynamic filesystem explorer and buffer switcher -*- mode: emacs-lisp -*-
 ;;
 ;; Copyright (C) 2008 Stephen Bach <http://items.sjbach.com/about>
 ;;
