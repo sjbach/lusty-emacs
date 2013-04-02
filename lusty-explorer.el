@@ -155,6 +155,14 @@ buffer names in the matches window; 0.10 = %10."
 (defvar lusty-mode-map nil
   "Minibuffer keymap for `lusty-file-explorer' and `lusty-buffer-explorer'.")
 
+(defvar lusty-global-map
+  (let ((map (make-sparse-keymap)))
+    (dolist (b '((switch-to-buffer . lusty-buffer-explorer)
+                 (find-file . lusty-file-explorer)))
+      (if (fboundp 'command-remapping)
+          (define-key map (vector 'remap (car b)) (cdr b))
+        (substitute-key-definition (car b) (cdr b) map global-map)))
+    map))
 
 (defvar lusty--active-mode nil)
 (defvar lusty--wrapping-ido-p nil)
@@ -254,6 +262,18 @@ Uses the faces `lusty-directory-face', `lusty-slash-face', and
            (buffer (lusty--run 'read-buffer)))
       (when buffer
         (switch-to-buffer buffer)))))
+
+;;;###autoload
+(define-minor-mode lusty-explorer-mode
+  "Toggle Lusty Explorer mode.
+With a prefix argument ARG, enable Lusty Explorer mode if ARG is
+positive, and disable it otherwise.  If called from Lisp, enable
+the mode if ARG is omitted or nil.
+
+Lusty Explorer mode is a global minor mode that enables switching
+between buffers and finding files using substrings, fuzzy matching,
+and recency information."
+  nil nil lusty-global-map :global t)
 
 ;;;###autoload
 (defun lusty-highlight-next ()
