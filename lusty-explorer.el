@@ -652,7 +652,7 @@ does not begin with '.'."
              (lusty-window (condition-case nil (split-window window)
                                (error ; Perhaps it is too small.
                                 (delete-window window)
-                                (split-window ((lusty--setup-window-to-split)))))))
+                                (split-window (lusty--setup-window-to-split))))))
         (select-window lusty-window)
         (when lusty-fully-expand-matches-window-p
           ;; Try to get a window covering the full frame.  Sometimes
