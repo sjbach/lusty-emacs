@@ -638,15 +638,21 @@ does not begin with '.'."
           (setq window-search-p nil))))
     lowest-window)))
 
+(defun lusty--setup-window-to-split ()
+  ;; Emacs 23 compatibility
+  (let ((root-window (frame-root-window)))
+    (if (window-live-p root-window)
+        root-window
+      (lusty-lowest-window))))
+
 (defun lusty--setup-matches-window ()
   (let ((lusty-buffer (get-buffer-create lusty-buffer-name)))
     (save-selected-window
-      (let* ((root-window (frame-root-window))
-             ;; Emacs 23 compatibility
-             (window (if (window-live-p root-window)
-                         root-window
-                       (lusty-lowest-window)))
-             (lusty-window (split-window window)))
+      (let* ((window (lusty--setup-window-to-split))
+             (lusty-window (condition-case nil (split-window window)
+                               (error ; Perhaps it is too small.
+                                (delete-window window)
+                                (split-window ((lusty--setup-window-to-split)))))))
         (select-window lusty-window)
         (when lusty-fully-expand-matches-window-p
           ;; Try to get a window covering the full frame.  Sometimes
