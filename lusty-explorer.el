@@ -601,6 +601,11 @@ does not begin with '.'."
 (defun lusty-max-window-width ()
   (frame-width))
 
+(defun lusty-window-width ()
+  (window-width
+   (get-buffer-window
+    (get-buffer-create lusty-buffer-name))))
+
 ;; Only needed for Emacs 23 compatibility, because the Emacs root window in an
 ;; already split frame is not a living window.
 (defun lusty-lowest-window ()
@@ -755,7 +760,7 @@ does not begin with '.'."
 
 (defun lusty--compute-layout-matrix (items)
   (let* ((max-visible-rows (1- (lusty-max-window-height)))
-         (max-width (lusty-max-window-width))
+         (max-width (lusty-window-width))
          (upper-bound most-positive-fixnum)
          (n-items (length items))
          (lengths-v (make-vector n-items 0))
@@ -865,7 +870,7 @@ does not begin with '.'."
   (let* ((separator-length (length lusty-column-separator))
          (n-items (length lengths-v))
          (max-visible-rows (1- (lusty-max-window-height)))
-         (available-width (lusty-max-window-width))
+         (available-width (lusty-window-width))
          (lengths-h
           ;; Hashes by cons, e.g. (0 . 2), representing the width
           ;; of the column bounded by the range of [0..2].
