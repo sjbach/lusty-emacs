@@ -85,6 +85,7 @@
 
 ;; Used only for its faces (for color-theme).
 (require 'dired)
+(require 'noflet)
 
 (declaim (optimize (speed 3) (safety 0)))
 
@@ -610,7 +611,7 @@ does not begin with '.'."
 ;; already split frame is not a living window.
 (defun lusty-lowest-window ()
   "Return the lowest window on the frame."
-  (flet ((iterate-non-dedicated-window (start-win direction)
+  (noflet ((iterate-non-dedicated-window (start-win direction)
            ;; Skip dedicated windows when iterating.
            (let ((iterating-p t)
                  (next start-win))
@@ -712,7 +713,7 @@ does not begin with '.'."
 (defun lusty-buffer-list ()
   "Return a list of buffers ordered with those currently visible at the end."
   (let ((visible-buffers '()))
-    (flet ((add-buffer-maybe (window)
+    (noflet ((add-buffer-maybe (window)
              (let ((b (window-buffer window)))
                (unless (memq b visible-buffers)
                  (push b visible-buffers)))))
