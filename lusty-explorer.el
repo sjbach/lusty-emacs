@@ -169,6 +169,12 @@ buffer names in the matches window; 0.10 = %10."
 (defvar lusty--initial-window-config nil)
 (defvar lusty--previous-minibuffer-contents nil)
 (defvar lusty--current-idle-timer nil)
+(if
+    (not(boundp 'lusty--completion-ignored-regexps))
+    (defvar lusty--completion-ignored-regexps '()) )
+(defvar lusty--ignored-buffer-regex
+  (mapconcat 'identity lusty--completion-ignored-regexps "\\|"))
+
 (defvar lusty--ignored-extensions-regex
   ;; Recalculated at execution time.
   (concat "\\(?:" (regexp-opt completion-ignored-extensions) "\\)$"))
@@ -239,6 +245,8 @@ Uses the faces `lusty-directory-face', `lusty-slash-face', and
     (lusty--define-mode-map)
     (let* ((lusty--ignored-extensions-regex
             (concat "\\(?:" (regexp-opt completion-ignored-extensions) "\\)$"))
+	   (lusty--ignored-buffer-regex
+	    (mapconcat 'identity lusty--completion-ignored-regexps "\\|"))
            (minibuffer-local-filename-completion-map lusty-mode-map)
            (file
             ;; read-file-name is silly in that if the result is equal to the
@@ -486,10 +494,13 @@ much as possible."
 (defun lusty-filter-buffers (buffers)
   "Return BUFFERS converted to strings with hidden buffers removed."
   (macrolet ((ephemeral-p (name)
-               `(eq (string-to-char ,name) ?\ )))
+               `(eq (string-to-char ,name) ?\ ))
+	     (ignored-p (name)
+			`(string-match lusty--ignored-buffer-regex ,name)))
     (loop for buffer in buffers
           for name = (buffer-name buffer)
-          unless (ephemeral-p name)
+          unless (or (ephemeral-p name)
+		     (ignored-p name))
           collect (copy-sequence name))))
 
 ;; Written kind-of silly for performance.
