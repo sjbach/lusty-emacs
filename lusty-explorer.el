@@ -204,7 +204,7 @@ buffer names in the matches window; 0.10 = %10."
            (>= y (length (aref lusty--matches-matrix 0)))
            (null (aref (aref lusty--matches-matrix x) y)))))
 
-(defsubst lusty--compute-column-width (start-index end-index lengths-v lengths-h)
+(defun lusty--compute-column-width (start-index end-index lengths-v lengths-h)
   (if (= start-index end-index)
       ;; Single-element remainder
       (aref lengths-v start-index)
@@ -226,7 +226,7 @@ buffer names in the matches window; 0.10 = %10."
                      (max first-half second-half)
                      lengths-h))))))
 
-(defsubst lusty--propertize-path (path)
+(defun lusty--propertize-path (path)
   "Propertize the given PATH like so: <dir></> or <file>.
 Uses the faces `lusty-directory-face', `lusty-slash-face', and
 `lusty-file-face'."
@@ -1052,7 +1052,7 @@ does not begin with '.'."
 (defconst LM--score-trailing-but-started 0.90)
 (defconst LM--score-buffer 0.85)
 
-(defsubst* LM-score (str abbrev)
+(defun* LM-score (str abbrev)
   (let ((str-len (length str))
         (abbrev-len (length abbrev)))
     (cond ;((string= abbrev "")  ; Disabled; can't happen in practice
