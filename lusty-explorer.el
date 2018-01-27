@@ -169,11 +169,6 @@ buffer names in the matches window; 0.10 = %10."
 (defvar lusty--initial-window-config nil)
 (defvar lusty--previous-minibuffer-contents nil)
 (defvar lusty--current-idle-timer nil)
-(if
-    (not(boundp 'lusty--completion-ignored-regexps))
-    (defvar lusty--completion-ignored-regexps '()) )
-(defvar lusty--ignored-buffer-regex
-  (mapconcat 'identity lusty--completion-ignored-regexps "\\|"))
 
 (defvar lusty--ignored-extensions-regex
   ;; Recalculated at execution time.
@@ -245,8 +240,6 @@ Uses the faces `lusty-directory-face', `lusty-slash-face', and
     (lusty--define-mode-map)
     (let* ((lusty--ignored-extensions-regex
             (concat "\\(?:" (regexp-opt completion-ignored-extensions) "\\)$"))
-	   (lusty--ignored-buffer-regex
-	    (mapconcat 'identity lusty--completion-ignored-regexps "\\|"))
            (minibuffer-local-filename-completion-map lusty-mode-map)
            (file
             ;; read-file-name is silly in that if the result is equal to the
@@ -494,13 +487,10 @@ much as possible."
 (defun lusty-filter-buffers (buffers)
   "Return BUFFERS converted to strings with hidden buffers removed."
   (macrolet ((ephemeral-p (name)
-               `(eq (string-to-char ,name) ?\ ))
-	     (ignored-p (name)
-			`(string-match lusty--ignored-buffer-regex ,name)))
+               `(eq (string-to-char ,name) ?\ )))
     (loop for buffer in buffers
           for name = (buffer-name buffer)
-          unless (or (ephemeral-p name)
-		     (ignored-p name))
+          unless (ephemeral-p name)
           collect (copy-sequence name))))
 
 ;; Written kind-of silly for performance.
@@ -723,11 +713,13 @@ does not begin with '.'."
 (defun lusty-buffer-list ()
   "Return a list of buffers ordered with those currently visible at the end."
   (let ((visible-buffers '()))
-    (cl-flet ((add-buffer-maybe (window)
-             (let ((b (window-buffer window)))
-               (unless (memq b visible-buffers)
-                 (push b visible-buffers)))))
-      (walk-windows 'add-buffer-maybe nil 'visible))
+    (walk-windows
+     (lambda (window)
+       ;; Add visible buffers
+       (let ((b (window-buffer window)))
+         (unless (memq b visible-buffers)
+           (push b visible-buffers))))
+     nil 'visible)
     (let ((non-visible-buffers
            (loop for b in (buffer-list)
                  unless (memq b visible-buffers)
