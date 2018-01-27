@@ -2,10 +2,10 @@
 ;;
 ;; Copyright (C) 2008 Stephen Bach <http://items.sjbach.com/about>
 ;;
-;; Version: 2.5
+;; Version: 3.x
 ;; Created: July 27, 2010
 ;; Keywords: convenience, files, matching
-;; Compatibility: GNU Emacs 22, 23, and 24
+;; Compatibility: GNU Emacs 24.3+
 ;;
 ;; Permission is hereby granted to use and distribute this code, with or
 ;; without modifications, provided that this copyright notice is copied with
@@ -609,6 +609,7 @@ does not begin with '.'."
 
 ;; Only needed for Emacs 23 compatibility, because the Emacs root window in an
 ;; already split frame is not a living window.
+;; TODO: remove code required for Emacs 23 compatibility.
 (defun lusty-lowest-window ()
   "Return the lowest window on the frame."
   (cl-flet ((iterate-non-dedicated-window (start-win direction)
@@ -646,6 +647,7 @@ does not begin with '.'."
 
 (defun lusty--setup-window-to-split ()
   ;; Emacs 23 compatibility
+  ;; TODO: remove code required for Emacs 23 compatibility.
   (let ((root-window (frame-root-window)))
     (if (window-live-p root-window)
         root-window
