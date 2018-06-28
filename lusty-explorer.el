@@ -2,7 +2,7 @@
 ;;
 ;; Copyright (C) 2008 Stephen Bach <http://items.sjbach.com/about>
 ;;
-;; Version: 3.x
+;; Version: 3.0
 ;; Created: July 27, 2010
 ;; Keywords: convenience, files, matching
 ;; Compatibility: GNU Emacs 24.3+
