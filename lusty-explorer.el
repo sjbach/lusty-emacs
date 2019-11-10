@@ -1098,56 +1098,6 @@ does not begin with '.'."
 ;; End LiquidMetal
 ;;
 
-
-;;
-;; XEmacs compatibility functions
-;;
-
-; (unless (fboundp 'minibufferp)
-;   (defun minibufferp ()
-;     (eq (window-buffer (minibuffer-window))
-;         (current-buffer))))
-;
-; (unless (fboundp 'minibuffer-contents-no-properties)
-;   (defun minibuffer-contents-no-properties ()
-;     (with-current-buffer (window-buffer (minibuffer-window))
-;       (let ((start (1+ (length lusty-prompt)))
-;             (end (point-max)))
-;         (if (>= end start)
-;             (buffer-substring-no-properties start end)
-;           "")))))
-;
-; (unless (fboundp 'minibuffer-prompt-end)
-;   (defun minibuffer-prompt-end ()
-;     (1+ (length lusty-prompt))))
-;
-; (unless (fboundp 'line-number-at-pos)
-;   (defun line-number-at-pos (&optional pos)
-;     (line-number pos)))
-;
-; ;; Cribbed from cal-fit-window-to-buffer
-; (unless (fboundp 'fit-window-to-buffer)
-;   (defun fit-window-to-buffer (owin max-height)
-;     (interactive)
-;     (if owin
-;       (delete-other-windows))
-;     (when (> (length (window-list nil 'nomini)) 1)
-;       (let* ((window (selected-window))
-;            (buf (window-buffer window))
-;            (height (window-displayed-height (selected-window)))
-;            (new-height
-;               (min (with-current-buffer buf
-;                      (count-lines (point-min) (point-max)))
-;                    max-height))
-;            (diff (- new-height height)))
-;       (unless (zerop diff)
-;         (enlarge-window diff))
-;       (let ((end (with-current-buffer buf (point-max))))
-;         (while (and (> (length (window-list nil 'nomini)) 1)
-;                     (not (pos-visible-in-window-p end)))
-;           (enlarge-window 1)))))))
-
-
 (provide 'lusty-explorer)
 
 ;;; lusty-explorer.el ends here.
