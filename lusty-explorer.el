@@ -1,9 +1,8 @@
 ;;; lusty-explorer.el --- Dynamic filesystem explorer and buffer switcher -*- mode: emacs-lisp -*-
 ;;
-;; Copyright (C) 2008 Stephen Bach <http://items.sjbach.com/about>
+;; Copyright (C) 2008-2019 Stephen Bach
 ;;
-;; Version: 3.0
-;; Created: July 27, 2010
+;; Version: 3.0.x
 ;; Keywords: convenience, files, matching
 ;; Compatibility: GNU Emacs 24.3+
 ;;
@@ -38,9 +37,13 @@
 ;; the current viewed directory, press C-x d.
 ;;
 ;; Note: lusty-explorer.el benefits greatly from byte-compilation.  To byte-
-;; compile this library, M-x byte-compile-file and choose lusty-explorer.el.
-;; (Ignore any warnings about the cl package.) Then, restart Emacs or
-;; M-x load-library and choose the newly generated lusty-explorer.elc file.
+;; compile this library:
+;;
+;;    $ emacs -Q -batch -f batch-byte-compile lusty-explorer.el
+;;
+;; (You can also do this from within Emacs, but it's best done in a clean
+;; session.)  Then, restart Emacs or M-x load-library and choose the newly
+;; generated lusty-explorer.elc file.
 ;;
 ;;; Customization:
 ;;  --------------
@@ -54,8 +57,8 @@
 ;; Respects these variables:
 ;;   completion-ignored-extensions
 ;;
-;; Latest release: <http://www.emacswiki.org/cgi-bin/wiki/LustyExplorer>
 ;; Development:    <http://github.com/sjbach/lusty-emacs>
+;; Further info:   <http://www.emacswiki.org/cgi-bin/wiki/LustyExplorer>
 ;;
 
 ;;; Contributors:
