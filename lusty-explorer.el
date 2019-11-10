@@ -1,4 +1,4 @@
-;;; lusty-explorer.el --- Dynamic filesystem explorer and buffer switcher -*- mode: emacs-lisp -*-
+;;; lusty-explorer.el --- Dynamic filesystem explorer and buffer switcher -*- lexical-binding: t; mode: emacs-lisp -*-
 ;;
 ;; Copyright (C) 2008-2019 Stephen Bach
 ;;
@@ -522,7 +522,7 @@ does not begin with '.'."
   "Sets ARGS into the minibuffer after the prompt."
   (cl-assert (minibufferp))
   (delete-region (minibuffer-prompt-end) (point-max))
-  (apply 'insert args))
+  (apply #'insert args))
 
 (defun lusty--file-explorer-select (match)
   (let* ((path (minibuffer-contents-no-properties))
@@ -532,7 +532,6 @@ does not begin with '.'."
         ;; leave, since it's confusing to do two kinds of completion at once.
         (lusty-set-minibuffer-text var-completed-path)
       (let* ((dir (file-name-directory path))
-             (file-portion (file-name-nondirectory path))
              (normalized-dir (lusty-normalize-dir dir)))
         ;; Clean up the path when selecting, in case we recurse.
         (remove-text-properties 0 (length match) '(face) match)
