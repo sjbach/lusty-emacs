@@ -578,7 +578,7 @@ does not begin with '.'."
           (cancel-timer lusty--current-idle-timer))
         (setq lusty--current-idle-timer
               (run-with-idle-timer lusty-idle-seconds-per-refresh nil
-                                   'lusty-refresh-matches-buffer))))))
+                                   #'lusty-refresh-matches-buffer))))))
 
 (defun lusty-max-window-height ()
   "Return the expected maximum allowable height of a window on this frame"
@@ -994,24 +994,24 @@ does not begin with '.'."
   ;; Re-generated every run so that it can inherit new functions.
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map minibuffer-local-map)
-    (define-key map (kbd "RET") 'lusty-open-this)
-    (define-key map "\t" 'lusty-select-match)
-    (define-key map [remap delete-backward-char] 'lusty-delete-backward)
+    (define-key map (kbd "RET") #'lusty-open-this)
+    (define-key map "\t" #'lusty-select-match)
+    (define-key map [remap delete-backward-char] #'lusty-delete-backward)
 
-    (define-key map "\C-n" 'lusty-highlight-next)
-    (define-key map "\C-p" 'lusty-highlight-previous)
-    (define-key map "\C-s" 'lusty-highlight-next)
-    (define-key map "\C-r" 'lusty-highlight-previous)
-    (define-key map "\C-f" 'lusty-highlight-next-column)
-    (define-key map "\C-b" 'lusty-highlight-previous-column)
+    (define-key map "\C-n" #'lusty-highlight-next)
+    (define-key map "\C-p" #'lusty-highlight-previous)
+    (define-key map "\C-s" #'lusty-highlight-next)
+    (define-key map "\C-r" #'lusty-highlight-previous)
+    (define-key map "\C-f" #'lusty-highlight-next-column)
+    (define-key map "\C-b" #'lusty-highlight-previous-column)
 
-    (define-key map (kbd "<left>") 'lusty-highlight-previous-column)
-    (define-key map (kbd "<right>") 'lusty-highlight-next-column)
-    (define-key map (kbd "<up>") 'lusty-highlight-previous)
-    (define-key map (kbd "<down>") 'lusty-highlight-next)
+    (define-key map (kbd "<left>") #'lusty-highlight-previous-column)
+    (define-key map (kbd "<right>") #'lusty-highlight-next-column)
+    (define-key map (kbd "<up>") #'lusty-highlight-previous)
+    (define-key map (kbd "<down>") #'lusty-highlight-next)
 
-    (define-key map "\C-xd" 'lusty-launch-dired)
-    (define-key map "\C-xe" 'lusty-select-current-name)
+    (define-key map "\C-xd" #'lusty-launch-dired)
+    (define-key map "\C-xe" #'lusty-select-current-name)
     (setq lusty-mode-map map))
   (run-hooks 'lusty-setup-hook))
 
@@ -1021,11 +1021,11 @@ does not begin with '.'."
         (lusty--matches-matrix (make-vector 0 nil))
         (lusty--matrix-column-widths '())
         (lusty--matrix-truncated-p nil))
-    (add-hook 'post-command-hook 'lusty--post-command-function t)
+    (add-hook 'post-command-hook #'lusty--post-command-function t)
     (unwind-protect
         (save-window-excursion
           (apply read-fn lusty-prompt args))
-      (remove-hook 'post-command-hook 'lusty--post-command-function)
+      (remove-hook 'post-command-hook #'lusty--post-command-function)
       (setq lusty--previous-minibuffer-contents nil
             lusty--initial-window-config nil
             lusty--current-idle-timer nil))))
