@@ -1,3 +1,6 @@
+[![MELPA](https://melpa.org/packages/lusty-explorer-badge.svg)](https://melpa.org/#/lusty-explorer)
+[![MELPA Stable](https://stable.melpa.org/packages/lusty-explorer-badge.svg)](https://stable.melpa.org/#/lusty-explorer)
+
 This is the LustyExplorer plugin for Emacs.
 
 # Usage:
