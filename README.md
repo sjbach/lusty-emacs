@@ -1,8 +1,6 @@
 [![MELPA](https://melpa.org/packages/lusty-explorer-badge.svg)](https://melpa.org/#/lusty-explorer)
 [![MELPA Stable](https://stable.melpa.org/packages/lusty-explorer-badge.svg)](https://stable.melpa.org/#/lusty-explorer)
 
-This is the LustyExplorer plugin for Emacs.
-
 # Usage:
 
 To install, copy this file somewhere in your `load-path` and add this line to your `~/.emacs.d/init.el`:
