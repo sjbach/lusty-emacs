@@ -57,6 +57,9 @@ completion-ignored-extensions
 - Sasha Kovar
 - John Wiegley
 - Johan Walles
+- p3r7
+- Nick Alcock
+- Jonas Bernoulli
 
 # Misc:
 
