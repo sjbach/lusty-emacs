@@ -208,6 +208,8 @@ buffer names in the matches window; 0.10 = %10."
   ;; smaller chunks in recursive calls to this function, then calculate and
   ;; memoize the widths from the bottom up. The memoized widths are likely to
   ;; be used again in subsequent calls to this function.
+  ;;
+  ;; Note: this gets called a lot and would best be speedy.
   (if (= start-index end-index)
       ;; This situation describes a column consisting of a single element.
       (aref lengths-v start-index)
@@ -218,16 +220,16 @@ buffer names in the matches window; 0.10 = %10."
                   (+ start-index
                      ;; Same thing as: (/ (- end-index start-index) 2)
                      (ash (- end-index start-index) -1)))
-                 (first-half
+                 (width-first-half
                   (lusty--compute-column-width
                    start-index split-point
                    lengths-v lengths-h))
-                 (second-half
+                 (width-second-half
                   (lusty--compute-column-width
                    (1+ split-point) end-index
                    lengths-v lengths-h)))
-            (puthash (cons start-index end-index)
-                     (max first-half second-half)
+            (puthash range
+                     (max width-first-half width-second-half)
                      lengths-h))))))
 
 (defun lusty--propertize-path (path)
