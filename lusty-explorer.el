@@ -3,7 +3,9 @@
 ;; Copyright (C) 2008-2019 Stephen Bach
 ;;
 ;; Version: 3.0.1
-;; Keywords: convenience, files, matching
+;; Keywords: convenience, files, matching, tools
+;; URL: https://github.com/sjbach/lusty-emacs
+;; Package-Requires: (cl-lib dired)
 ;; Compatibility: GNU Emacs 24.3+
 ;;
 ;; Permission is hereby granted to use and distribute this code, with or
@@ -59,6 +61,7 @@
 ;;
 ;; Development:    <http://github.com/sjbach/lusty-emacs>
 ;; Further info:   <http://www.emacswiki.org/cgi-bin/wiki/LustyExplorer>
+;;                 (Probably out-of-date)
 ;;
 
 ;;; Contributors:
@@ -182,7 +185,7 @@ buffer names in the matches window; 0.10 = %10."
 
 (defvar lusty--highlighted-coords (cons 0 0))  ; (x . y)
 
-;; Set by lusty--compute-layout-matrix
+;; Set later by lusty--compute-layout-matrix
 (defvar lusty--matches-matrix (make-vector 0 nil))
 (defvar lusty--matrix-column-widths '())
 (defvar lusty--matrix-truncated-p nil)
@@ -201,14 +204,19 @@ buffer names in the matches window; 0.10 = %10."
            (null (aref (aref lusty--matches-matrix x) y)))))
 
 (defun lusty--compute-column-width (start-index end-index lengths-v lengths-h)
+  ;; Dynamic programming algorithm. Split the index range into smaller and
+  ;; smaller chunks in recursive calls to this function, then calculate and
+  ;; memoize the widths from the bottom up. The memoized widths are likely to
+  ;; be used again in subsequent calls to this function.
   (if (= start-index end-index)
-      ;; Single-element remainder
+      ;; This situation describes a column consisting of a single element.
       (aref lengths-v start-index)
     (let* ((range (cons start-index end-index))
            (width (gethash range lengths-h)))
       (or width
           (let* ((split-point
                   (+ start-index
+                     ;; Same thing as: (/ (- end-index start-index) 2)
                      (ash (- end-index start-index) -1)))
                  (first-half
                   (lusty--compute-column-width
@@ -602,6 +610,8 @@ does not begin with '.'."
        (- (window-height test-window)
           (window-body-height test-window))
        ;; And minibuffer height.
+       ;; FIXME: but only if (eq (window-frame (minibuffer-window))
+       ;;                        (window-frame test-window)), right?
        (window-height (minibuffer-window)))))
 
 (defun lusty-max-window-width ()
@@ -668,9 +678,10 @@ does not begin with '.'."
                                 (split-window (lusty--setup-window-to-split))))))
         (select-window lusty-window)
         (when lusty-fully-expand-matches-window-p
-          ;; Try to get a window covering the full frame.  Sometimes
-          ;; this takes more than one try, but we don't want to do it
-          ;; infinitely in case of weird setups.
+          ;; Attempt to grow the window to cover the full frame.  Sometimes
+          ;; this takes more than one try, but we don't want to accidentally
+          ;; loop on it infinitely in the case of some unconventional
+          ;; window/frame setup.
           (cl-loop repeat 5
                    while (< (window-width) (frame-width))
                    do
@@ -768,6 +779,8 @@ does not begin with '.'."
         (sort filtered 'string<)
       (lusty-sort-by-fuzzy-score filtered file-portion))))
 
+;; Principal goal: fit as many items as possible into as few buffer/window rows
+;; as possible. This leads to maximizing the number of columns (approximately).
 (defun lusty--compute-layout-matrix (items)
   (let* ((max-visible-rows (1- (lusty-max-window-height)))
          (max-width (lusty-window-width))
@@ -787,12 +800,12 @@ does not begin with '.'."
             (setq length-of-longest-name
                   (max length-of-longest-name len)))
 
-      ;; Calculate upper-bound
+      ;; Calculate an upper-bound.
       (let ((width (+ length-of-longest-name
                       separator-length))
             (columns 1)
-            (sorted-shortest (sort (append lengths-v nil) '<)))
-        (cl-dolist (item-len sorted-shortest)
+            (shortest-first (sort (append lengths-v nil) '<)))
+        (cl-dolist (item-len shortest-first)
           (cl-incf width item-len)
           (when (> width max-width)
             (cl-return))
@@ -838,6 +851,8 @@ does not begin with '.'."
 
         (when (and (zerop n-columns)
                    (cl-plusp n-items))
+          ;; Turns out there's not enough window space to do anything clever,
+          ;; so just stack 'em up (and truncate).
           (setq n-columns 1)
           (setq column-widths
                 (list
@@ -846,14 +861,14 @@ does not begin with '.'."
                             :end (min n-items max-visible-rows)))))
 
         (let ((matrix
-               ;; Create an empty matrix.
+               ;; Create an empty matrix using the calculated dimensions.
                (let ((col-vec (make-vector n-columns nil)))
                  (dotimes (i n-columns)
                    (aset col-vec i
                          (make-vector optimal-n-rows nil)))
                  col-vec)))
 
-          ;; Fill the matrix with propertized matches.
+          ;; Fill the matrix with propertized match strings.
           (unless (zerop n-columns)
             (let ((x 0)
                   (y 0)
@@ -873,7 +888,7 @@ does not begin with '.'."
                 lusty--matrix-column-widths column-widths
                 lusty--matrix-truncated-p truncated-p))))))
 
-;; Returns number of rows and whether this truncates the matches.
+;; Returns number of rows and whether this row count will truncate the matches.
 (cl-defun lusty--compute-optimal-row-count (lengths-v)
   ;;
   ;; Binary search; find the lowest number of rows at which we
@@ -883,16 +898,19 @@ does not begin with '.'."
          (n-items (length lengths-v))
          (max-visible-rows (1- (lusty-max-window-height)))
          (available-width (lusty-window-width))
+         ;; Holds memoized widths of candidate columns (ranges of items).
          (lengths-h
           ;; Hashes by cons, e.g. (0 . 2), representing the width
           ;; of the column bounded by the range of [0..2].
           (make-hash-table :test 'equal
-                           ; not scientific
+                           ;; Not scientific; will certainly grow larger for a
+                           ;; nontrivial count of items (and so probably should
+                           ;; be set higher here).
                            :size n-items))
          ;; We've already failed for a single row, so start at two.
          (lower 1)
          (upper (min (1+ max-visible-rows)
-                     (length lengths-v))))
+                     n-items)))
 
     (while (/= (1+ lower) upper)
       (let* ((n-rows (/ (+ lower upper) 2)) ; Mid-point
@@ -901,14 +919,14 @@ does not begin with '.'."
              (total-width 0))
 
         (cl-block :column-widths
-          (while (< col-end-index (length lengths-v))
+          (while (< col-end-index n-items)
             (cl-incf total-width
                      (lusty--compute-column-width
                       col-start-index col-end-index
                       lengths-v lengths-h))
 
             (when (> total-width available-width)
-              ;; Early exit.
+              ;; Early exit; this row count is unworkable.
               (setq total-width most-positive-fixnum)
               (cl-return-from :column-widths))
 
@@ -917,10 +935,10 @@ does not begin with '.'."
             (cl-incf col-start-index n-rows)
             (cl-incf col-end-index n-rows)
 
-            (when (and (>= col-end-index (length lengths-v))
-                       (< col-start-index (length lengths-v)))
+            (when (and (>= col-end-index n-items)
+                       (< col-start-index n-items))
               ;; Remainder; last iteration will not be a full column.
-              (setq col-end-index (1- (length lengths-v))))))
+              (setq col-end-index (1- n-items)))))
 
         ;; The final column doesn't need a separator.
         (cl-decf total-width separator-length)
