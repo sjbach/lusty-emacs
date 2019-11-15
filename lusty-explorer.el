@@ -1,4 +1,4 @@
-;;; lusty-explorer.el --- Dynamic filesystem explorer and buffer switcher -*- lexical-binding: t; mode: emacs-lisp -*-
+;;; lusty-explorer.el --- Dynamic filesystem explorer and buffer switcher -*- lexical-binding: t; -*-
 ;;
 ;; Copyright (C) 2008-2019 Stephen Bach
 ;;
