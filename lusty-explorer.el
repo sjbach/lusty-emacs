@@ -614,13 +614,35 @@ does not begin with '.'."
        ;;                        (window-frame test-window)), right?
        (window-height (minibuffer-window)))))
 
-(defun lusty-max-window-width ()
-  (frame-width))
-
-(defun lusty-window-width ()
-  (window-width
-   (get-buffer-window
-    (get-buffer-create lusty-buffer-name))))
+(defun lusty--exploitable-window-body-width ()
+  (let* ((window (get-buffer-window
+                  (get-buffer-create lusty-buffer-name)))
+         (body-width (window-body-width window))
+         (window-fringe-absent-p
+          (and (equal (window-fringes) '(0 0 nil nil))
+               ;; (Probabably these are redundant checks.)
+               (eq (fringe-columns 'left) 0)
+               (eq (fringe-columns 'right) 0)
+               (eq (frame-fringe-width) 0)
+               ;; There are also `left-fringe-width`, `right-fringe-width`, but
+               ;; I'm not sure about them.
+               )))
+    ;; Emacs manual for window-body-width: "Note that the returned value
+    ;; includes the column reserved for the continuation glyph." So if we're
+    ;; configured such that a continuation glyph would show, we need to
+    ;; subtract one column for the "true" body width.
+    ;;
+    ;; Elsewhere in the manual: "[When] fringes are not available, Emacs uses
+    ;; the leftmost and rightmost character cells to indicate continuation and
+    ;; truncation with special ASCII characters ... .";
+    ;;
+    ;; So if we have no fringe, we can expect to lose that one column. There
+    ;; doesn't appear to be a way to reclaim it. We can possibly change the
+    ;; continuation character with `set-display-table-slot`, but not elide the
+    ;; character altogether.
+    (if window-fringe-absent-p
+        (1- body-width)
+      body-width)))
 
 ;; Only needed for Emacs 23 compatibility, because the Emacs root window in an
 ;; already split frame is not a living window.
@@ -783,8 +805,14 @@ does not begin with '.'."
 ;; as possible. This leads to maximizing the number of columns (approximately).
 (defun lusty--compute-layout-matrix (items)
   (let* ((max-visible-rows (1- (lusty-max-window-height)))
-         (max-width (lusty-window-width))
-         (upper-bound most-positive-fixnum)
+         (max-width
+          ;; Prior to calling this function we called
+          ;; `lusty--setup-matches-window`, which expanded the window for the
+          ;; matches buffer horizontally as much as it could. Therefore the
+          ;; current width of that window is the maximum width.
+          (lusty--exploitable-window-body-width))
+         ;; Upper bound of the count of displayable items.
+         (upper-bound most-positive-fixnum)  ; (set below)
          (n-items (length items))
          (lengths-v (make-vector n-items 0))
          (separator-length (length lusty-column-separator)))
@@ -897,7 +925,7 @@ does not begin with '.'."
   (let* ((separator-length (length lusty-column-separator))
          (n-items (length lengths-v))
          (max-visible-rows (1- (lusty-max-window-height)))
-         (available-width (lusty-window-width))
+         (available-width (lusty--exploitable-window-body-width))
          ;; Holds memoized widths of candidate columns (ranges of items).
          (lengths-h
           ;; Hashes by cons, e.g. (0 . 2), representing the width
