@@ -2,7 +2,7 @@
 ;;
 ;; Copyright (C) 2008-2019 Stephen Bach
 ;;
-;; Version: 3.0.1
+;; Version: 3.1
 ;; Keywords: convenience, files, matching, tools
 ;; URL: https://github.com/sjbach/lusty-emacs
 ;; Package-Requires: (cl-lib dired)
