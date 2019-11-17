@@ -815,7 +815,7 @@ does not begin with '.'."
                                                  (length buffers))
                        for b in buffers
                        for step from 0.0 by MRU-factor-step
-                       for score = (LM-score b match-text)
+                       for score = (lusty-LM-score b match-text)
                        for MRU-factor = (- 1.0 step)
                        unless (zerop score)
                        collect (cons b (* score MRU-factor))))
@@ -1126,23 +1126,23 @@ does not begin with '.'."
 ;;   http://github.com/rmm5t/liquidmetal/tree/master.
 ;;
 
-(defconst LM--score-no-match 0.0)
-(defconst LM--score-match 1.0)
-(defconst LM--score-trailing 0.8)
-(defconst LM--score-trailing-but-started 0.90)
-(defconst LM--score-buffer 0.85)
+(defmacro lusty--LM-score-no-match () 0.0)
+(defmacro lusty--LM-score-match () 1.0)
+(defmacro lusty--LM-score-trailing () 0.8)
+(defmacro lusty--LM-score-trailing-but-started () 0.90)
+(defmacro lusty--LM-score-buffer () 0.85)
 
-(cl-defun LM-score (str abbrev)
+(cl-defun lusty-LM-score (str abbrev)
   (let ((str-len (length str))
         (abbrev-len (length abbrev)))
     (cond ;((string= abbrev "")  ; Disabled; can't happen in practice
-          ; LM--score-trailing)
+          ; (lusty--LM-score-trailing))
           ((> abbrev-len str-len)
-           LM--score-no-match)
+           (lusty--LM-score-no-match))
           (t
            ;; Content of LM--build-score-array...
            ;; Inline for interpreted performance.
-           (let* ((scores (make-vector str-len LM--score-no-match))
+           (let* ((scores (make-vector str-len (lusty--LM-score-no-match)))
                   (str-test (if lusty-case-fold (downcase str) str))
                   (abbrev-test (if lusty-case-fold (downcase abbrev) abbrev))
                   (last-index 0)
@@ -1152,38 +1152,39 @@ does not begin with '.'."
                                        :start last-index
                                        :end str-len)))
                  (when (null pos)
-                   (cl-return-from LM-score LM--score-no-match))
+                   (cl-return-from lusty-LM-score (lusty--LM-score-no-match)))
                  (when (zerop pos)
                    (setq started-p t))
                  (cond ((and (cl-plusp pos)
                              (memq (aref str (1- pos))
                                    '(?. ?_ ?- ?\ )))
                         ;; New word.
-                        (aset scores (1- pos) LM--score-match)
-                        (cl-fill scores LM--score-buffer
+                        (aset scores (1- pos) (lusty--LM-score-match))
+                        (cl-fill scores (lusty--LM-score-buffer)
                                  :start last-index
                                  :end (1- pos)))
                        ((and (>= (aref str pos) ?A)
                              (<= (aref str pos) ?Z))
                         ;; Upper case.
-                        (cl-fill scores LM--score-buffer
+                        (cl-fill scores (lusty--LM-score-buffer)
                                  :start last-index
                                  :end pos))
                        (t
-                        (cl-fill scores LM--score-no-match
+                        (cl-fill scores (lusty--LM-score-no-match)
                                  :start last-index
                                  :end pos)))
-                 (aset scores pos LM--score-match)
+                 (aset scores pos (lusty--LM-score-match))
                  (setq last-index (1+ pos))))
 
              (let ((trailing-score
                     (if started-p
-                        LM--score-trailing-but-started
-                      LM--score-trailing)))
+                        (lusty--LM-score-trailing-but-started)
+                      (lusty--LM-score-trailing))))
                (cl-fill scores trailing-score :start last-index))
 
              (/ (cl-reduce '+ scores)
                 str-len ))))))
+(defalias 'LM-score 'lusty-LM-score)  ;; deprecated
 
 ;;
 ;; End LiquidMetal
