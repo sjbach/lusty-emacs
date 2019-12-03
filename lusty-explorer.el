@@ -5,7 +5,6 @@
 ;; Version: 3.1
 ;; Keywords: convenience, files, matching, tools
 ;; URL: https://github.com/sjbach/lusty-emacs
-;; Package-Requires: (cl-lib dired)
 ;; Compatibility: GNU Emacs 24.3+
 ;;
 ;; Permission is hereby granted to use and distribute this code, with or
