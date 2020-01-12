@@ -94,6 +94,8 @@
 ;; Used only for its faces (for color-theme).
 (require 'dired)
 
+(require 's)
+
 (cl-declaim (optimize (speed 3) (safety 0)))
 
 (defgroup lusty-explorer nil
@@ -447,8 +449,7 @@ Inspired by `lispy-yank'"
   (setq this-command 'yank)
   (unless arg
     (setq arg 0))
-  (let ((text (current-kill arg)))
-    (setq text (s-trim text))
+  (let ((text (s-trim (current-kill arg))))
     (cond
      ((and (region-active-p)
            (bound-and-true-p delete-selection-mode))
