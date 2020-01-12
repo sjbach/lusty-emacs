@@ -440,6 +440,30 @@ and recency information."
           (:buffer-explorer (lusty--buffer-explorer-select selected-match)))))))
 
 ;;;###autoload
+(defun lusty-yank (arg)
+  "Special yank that handles nicely case when current path \"/\" and pasted path starts w/ a leading \"/\" as well.
+Inspired by `lispy-yank'"
+  (interactive "P")
+  (setq this-command 'yank)
+  (unless arg
+    (setq arg 0))
+  (let ((text (current-kill arg)))
+    (setq text (s-trim text))
+    (cond
+     ((and (region-active-p)
+           (bound-and-true-p delete-selection-mode))
+      (delete-region (region-beginning) (region-end))
+      (insert-for-yank text))
+     ((and (eq (char-before) ?/)
+           (eq (char-before (- (point) 1)) ?:)
+           (s-starts-with? "/" text))
+      (insert-for-yank (replace-regexp-in-string "^/" ""
+                                                 text)))
+     (t
+      (push-mark (point))
+      (insert-for-yank text)))))
+
+;;;###autoload
 (defun lusty-select-current-name ()
   "Open the given file/buffer or create a new buffer with the current name."
   (interactive)
@@ -1083,6 +1107,7 @@ does not begin with '.'."
     (set-keymap-parent map minibuffer-local-map)
     (define-key map (kbd "RET") #'lusty-open-this)
     (define-key map "\t" #'lusty-select-match)
+    (define-key map "\C-y" #'lusty-yank)
     (define-key map [remap delete-backward-char] #'lusty-delete-backward)
 
     (define-key map "\C-n" #'lusty-highlight-next)
