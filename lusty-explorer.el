@@ -251,7 +251,8 @@ Uses the faces `lusty-directory-face', `lusty-slash-face', and
 (defun lusty-file-explorer ()
   "Launch the file/directory mode of LustyExplorer."
   (interactive)
-  (let ((lusty--active-mode :file-explorer))
+  (let ((completing-read-function #'completing-read-default)
+        (lusty--active-mode :file-explorer))
     (lusty--define-mode-map)
     (let* ((lusty--ignored-extensions-regex
             (concat "\\(?:" (regexp-opt completion-ignored-extensions) "\\)$"))
@@ -272,7 +273,8 @@ Uses the faces `lusty-directory-face', `lusty-slash-face', and
 (defun lusty-buffer-explorer ()
   "Launch the buffer mode of LustyExplorer."
   (interactive)
-  (let ((lusty--active-mode :buffer-explorer))
+  (let ((completing-read-function #'completing-read-default)
+        (lusty--active-mode :buffer-explorer))
     (lusty--define-mode-map)
     (let* ((minibuffer-local-completion-map lusty-mode-map)
            (buffer (lusty--run 'read-buffer)))
