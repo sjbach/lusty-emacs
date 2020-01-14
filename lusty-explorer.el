@@ -444,8 +444,7 @@ and recency information."
 
 ;;;###autoload
 (defun lusty-yank (arg)
-  "Special yank that handles nicely case when current path \"/\" and pasted path starts w/ a leading \"/\" as well.
-Inspired by `lispy-yank'"
+  "Special yank that trims text and handles nicely edge-case when `default-directory' is at the root (\"/\") of a remote tramp connection and pasted path is absolute (starts with a leading \"/\")."
   (interactive "P")
   (setq this-command 'yank)
   (unless arg
