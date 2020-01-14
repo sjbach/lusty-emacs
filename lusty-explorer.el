@@ -1109,7 +1109,7 @@ does not begin with '.'."
     (set-keymap-parent map minibuffer-local-map)
     (define-key map (kbd "RET") #'lusty-open-this)
     (define-key map "\t" #'lusty-select-match)
-    (define-key map "\C-y" #'lusty-yank)
+    (define-key map [remap yank] #'lusty-yank)
     (define-key map [remap delete-backward-char] #'lusty-delete-backward)
 
     (define-key map "\C-n" #'lusty-highlight-next)
