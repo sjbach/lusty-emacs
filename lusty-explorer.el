@@ -5,7 +5,7 @@
 ;; Version: 3.1.1
 ;; Keywords: convenience, files, matching, tools
 ;; URL: https://github.com/sjbach/lusty-emacs
-;; Package-Requires: ((emacs 24.3) (s "1.11.0"))
+;; Package-Requires: ((emacs "24.3") (s "1.11.0"))
 ;;
 ;; Permission is hereby granted to use and distribute this code, with or
 ;; without modifications, provided that this copyright notice is copied with
