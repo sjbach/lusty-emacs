@@ -1,11 +1,11 @@
 ;;; lusty-explorer.el --- Dynamic filesystem explorer and buffer switcher -*- lexical-binding: t; -*-
 ;;
-;; Copyright (C) 2008-2019 Stephen Bach
+;; Copyright (C) 2008-2020 Stephen Bach
 ;;
-;; Version: 3.1
+;; Version: 3.1.1
 ;; Keywords: convenience, files, matching, tools
 ;; URL: https://github.com/sjbach/lusty-emacs
-;; Compatibility: GNU Emacs 24.3+
+;; Package-Requires: ((emacs 24.3) (s "1.11.0"))
 ;;
 ;; Permission is hereby granted to use and distribute this code, with or
 ;; without modifications, provided that this copyright notice is copied with
@@ -37,14 +37,9 @@
 ;; To create a new buffer with the given name, press C-x e.  To open dired at
 ;; the current viewed directory, press C-x d.
 ;;
-;; Note: lusty-explorer.el benefits greatly from byte-compilation.  To byte-
-;; compile this library:
-;;
-;;    $ emacs -Q -batch -f batch-byte-compile lusty-explorer.el
-;;
-;; (You can also do this from within Emacs, but it's best done in a clean
-;; session.)  Then, restart Emacs or M-x load-library and choose the newly
-;; generated lusty-explorer.elc file.
+;; Note: lusty-explorer.el benefits greatly from byte-compilation.  (If you
+;; installed this package via an automatic system like `package-install', which
+;; is likely, then it's probably already been compiled.)
 ;;
 ;;; Customization:
 ;;  --------------
@@ -93,6 +88,8 @@
 
 ;; Used only for its faces (for color-theme).
 (require 'dired)
+
+(require 's)
 
 (cl-declaim (optimize (speed 3) (safety 0)))
 
@@ -438,6 +435,33 @@ and recency information."
         (cl-ecase lusty--active-mode
           (:file-explorer (lusty--file-explorer-select selected-match))
           (:buffer-explorer (lusty--buffer-explorer-select selected-match)))))))
+
+;;;###autoload
+(defun lusty-yank (arg)
+  "A `yank' variant that adds some intuitive behavior in the case where
+`default-directory' is at the root (\"/\") of a remote TRAMP connection and the
+pasted path is absolute (i.e. has a leading \"/\"). The pasted path is
+assumed to be on the remote filesystem rather than the local (that being the
+default behavior, generally less useful)."
+  (interactive "P")
+  ;; (Possibly superstition, but other `yank' overrides do it.)
+  (setq this-command 'yank)
+  (unless arg
+    (setq arg 0))
+  (let ((text (s-trim (current-kill arg))))
+    (cond
+     ((and (region-active-p)
+           (bound-and-true-p delete-selection-mode))
+      (delete-region (region-beginning) (region-end))
+      (insert-for-yank text))
+     ((and (eq (char-before) ?/)
+           (eq (char-before (- (point) 1)) ?:)
+           (s-starts-with? "/" text))
+      (insert-for-yank (replace-regexp-in-string "^/" ""
+                                                 text)))
+     (t
+      (push-mark (point))
+      (insert-for-yank text)))))
 
 ;;;###autoload
 (defun lusty-select-current-name ()
@@ -1083,6 +1107,7 @@ does not begin with '.'."
     (set-keymap-parent map minibuffer-local-map)
     (define-key map (kbd "RET") #'lusty-open-this)
     (define-key map "\t" #'lusty-select-match)
+    (define-key map [remap yank] #'lusty-yank)
     (define-key map [remap delete-backward-char] #'lusty-delete-backward)
 
     (define-key map "\C-n" #'lusty-highlight-next)
