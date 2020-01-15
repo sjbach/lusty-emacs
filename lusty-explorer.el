@@ -1,12 +1,11 @@
 ;;; lusty-explorer.el --- Dynamic filesystem explorer and buffer switcher -*- lexical-binding: t; -*-
 ;;
-;; Copyright (C) 2008-2019 Stephen Bach
+;; Copyright (C) 2008-2020 Stephen Bach
 ;;
-;; Version: 3.1
+;; Version: 3.1.1
 ;; Keywords: convenience, files, matching, tools
 ;; URL: https://github.com/sjbach/lusty-emacs
-;; Compatibility: GNU Emacs 24.3+
-;; Package-Requires: ((s "1.11.0"))
+;; Package-Requires: ((emacs 24.3) (s "1.11.0"))
 ;;
 ;; Permission is hereby granted to use and distribute this code, with or
 ;; without modifications, provided that this copyright notice is copied with
@@ -38,14 +37,9 @@
 ;; To create a new buffer with the given name, press C-x e.  To open dired at
 ;; the current viewed directory, press C-x d.
 ;;
-;; Note: lusty-explorer.el benefits greatly from byte-compilation.  To byte-
-;; compile this library:
-;;
-;;    $ emacs -Q -batch -f batch-byte-compile lusty-explorer.el
-;;
-;; (You can also do this from within Emacs, but it's best done in a clean
-;; session.)  Then, restart Emacs or M-x load-library and choose the newly
-;; generated lusty-explorer.elc file.
+;; Note: lusty-explorer.el benefits greatly from byte-compilation.  (If you
+;; installed this package via an automatic system like `package-install', which
+;; is likely, then it's probably already been compiled.)
 ;;
 ;;; Customization:
 ;;  --------------
@@ -444,8 +438,13 @@ and recency information."
 
 ;;;###autoload
 (defun lusty-yank (arg)
-  "Special yank that trims text and handles nicely edge-case when `default-directory' is at the root (\"/\") of a remote tramp connection and pasted path is absolute (starts with a leading \"/\")."
+  "A `yank' variant that adds some intuitive behavior in the case where
+`default-directory' is at the root (\"/\") of a remote TRAMP connection and the
+pasted path is absolute (i.e. has a leading \"/\"). The pasted path is
+assumed to be on the remote filesystem rather than the local (that being the
+default behavior, generally less useful)."
   (interactive "P")
+  ;; (Possibly superstition, but other `yank' overrides do it.)
   (setq this-command 'yank)
   (unless arg
     (setq arg 0))
