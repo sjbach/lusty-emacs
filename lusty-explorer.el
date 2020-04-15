@@ -488,7 +488,7 @@ default behavior, generally less useful)."
   ;; TODO: case-sensitive when abbrev contains capital letter
   (let* ((strings+scores
           (cl-loop for str in strings
-                   for score = (LM-score str abbrev)
+                   for score = (lusty-LM-score str abbrev)
                    unless (zerop score)
                    collect (cons str score)))
          (sorted
