@@ -824,7 +824,7 @@ does not begin with '.'."
            (push b visible-buffers))))
      nil 'visible)
     (let ((non-visible-buffers
-           (cl-loop for b in (buffer-list)
+           (cl-loop for b in (buffer-list (selected-frame))
                     unless (memq b visible-buffers)
                     collect b)))
       (nconc non-visible-buffers visible-buffers))))
