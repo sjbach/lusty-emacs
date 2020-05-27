@@ -5,7 +5,7 @@
 ;; Version: 3.1.1
 ;; Keywords: convenience, files, matching, tools
 ;; URL: https://github.com/sjbach/lusty-emacs
-;; Package-Requires: ((emacs "24.3") (s "1.11.0"))
+;; Package-Requires: ((emacs "24.4"))
 ;;
 ;; Permission is hereby granted to use and distribute this code, with or
 ;; without modifications, provided that this copyright notice is copied with
@@ -83,13 +83,10 @@
 ;; - C-f/C-b -> next/previous column?
 ;; - config var: C-x d opens highlighted dir instead of current dir
 
-;; Used for many functions and macros.
-(require 'cl-lib)
 
-;; Used only for its faces (for color-theme).
-(require 'dired)
-
-(require 's)
+(require 'cl-lib)  ; many functions and macros
+(require 'dired)  ; faces only
+(eval-when-compile (require 'subr-x))  ; string trimming
 
 (cl-declaim (optimize (speed 3) (safety 0)))
 
@@ -450,7 +447,7 @@ default behavior, generally less useful)."
   (setq this-command 'yank)
   (unless arg
     (setq arg 0))
-  (let ((text (s-trim (current-kill arg))))
+  (let ((text (string-trim (current-kill arg))))
     (cond
      ((and (region-active-p)
            (bound-and-true-p delete-selection-mode))
@@ -458,7 +455,7 @@ default behavior, generally less useful)."
       (insert-for-yank text))
      ((and (eq (char-before) ?/)
            (eq (char-before (- (point) 1)) ?:)
-           (s-starts-with? "/" text))
+           (string-prefix-p "/" text))
       (insert-for-yank (replace-regexp-in-string "^/" ""
                                                  text)))
      (t
@@ -481,8 +478,6 @@ default behavior, generally less useful)."
            (dir (lusty-normalize-dir (file-name-directory path))))
       (lusty-set-minibuffer-text dir)
       (exit-minibuffer))))
-
-
 
 (defun lusty-sort-by-fuzzy-score (strings abbrev)
   ;; TODO: case-sensitive when abbrev contains capital letter

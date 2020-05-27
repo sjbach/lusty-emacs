@@ -3,7 +3,14 @@
 
 # Usage:
 
-This package is on MELPA. For simple installation, `M-x package-install` and then `lusty-explorer`. To install manually, copy `lusty-explorer.el` somewhere in your `load-path` along with [`s.el`](https://github.com/magnars/s.el). Add this line to your `~/.emacs.d/init.el`:
+Copy `lusty-explorer.el` somewhere in your `load-path`, or if if you use MELPA, then:
+
+```
+M-x package-install
+=> Install package: lusty-explorer
+```
+
+Add this line to your `~/.emacs.d/init.el`:
 
 ```elisp
 (require 'lusty-explorer)
@@ -53,5 +60,5 @@ completion-ignored-extensions
 
 # Misc:
 
-- [Vim version](http://github.com/sjbach/lusty)
-- [EmacsWiki](http://www.emacswiki.org/cgi-bin/wiki/LustyExplorer)
+- [Vim version](https://github.com/sjbach/lusty)
+- [EmacsWiki](https://www.emacswiki.org/cgi-bin/wiki/LustyExplorer)
