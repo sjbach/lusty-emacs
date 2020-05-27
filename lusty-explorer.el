@@ -53,8 +53,8 @@
 ;; Respects these variables:
 ;;   completion-ignored-extensions
 ;;
-;; Development:    <http://github.com/sjbach/lusty-emacs>
-;; Further info:   <http://www.emacswiki.org/cgi-bin/wiki/LustyExplorer>
+;; Development:    <https://github.com/sjbach/lusty-emacs>
+;; Further info:   <https://www.emacswiki.org/cgi-bin/wiki/LustyExplorer>
 ;;                 (Probably out-of-date)
 ;;
 
@@ -1149,7 +1149,7 @@ does not begin with '.'."
 ;; Start LiquidMetal
 ;;
 ;; Port of Ryan McGeary's LiquidMetal fuzzy matching algorithm found at:
-;;   http://github.com/rmm5t/liquidmetal/tree/master.
+;;   https://github.com/rmm5t/liquidmetal
 ;;
 
 (defmacro lusty--LM-score-no-match () 0.0)
