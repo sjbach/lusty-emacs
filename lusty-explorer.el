@@ -174,7 +174,7 @@ buffer names in the matches window; 0.10 = %10."
 
 (defvar lusty--highlighted-coords (cons 0 0))  ; (x . y)
 
-;; Set later by lusty--compute-layout-matrix
+;; Set later by `lusty--compute-layout-matrix'.
 (defvar lusty--matches-matrix (make-vector 0 nil))
 (defvar lusty--matrix-column-widths '())
 (defvar lusty--matrix-truncated-p nil)
@@ -290,12 +290,10 @@ and recency information."
   (when (and lusty--active-mode
              (not (lusty--matrix-empty-p)))
     (cl-destructuring-bind (x . y) lusty--highlighted-coords
-
       ;; Unhighlight previous highlight.
       (let ((prev-highlight
              (aref (aref lusty--matches-matrix x) y)))
         (lusty--propertize-path prev-highlight))
-
       ;; Determine the coords of the next highlight.
       (cl-incf y)
       (unless (lusty--matrix-coord-valid-p x y)
@@ -303,7 +301,6 @@ and recency information."
         (setq y 0)
         (unless (lusty--matrix-coord-valid-p x y)
           (setq x 0)))
-
       ;; Refresh with new highlight.
       (setq lusty--highlighted-coords (cons x y))
       (lusty-refresh-matches-buffer :use-previous-matrix))))
@@ -315,12 +312,10 @@ and recency information."
   (when (and lusty--active-mode
              (not (lusty--matrix-empty-p)))
     (cl-destructuring-bind (x . y) lusty--highlighted-coords
-
       ;; Unhighlight previous highlight.
       (let ((prev-highlight
              (aref (aref lusty--matches-matrix x) y)))
         (lusty--propertize-path prev-highlight))
-
       ;; Determine the coords of the next highlight.
       (cl-decf y)
       (unless (lusty--matrix-coord-valid-p x y)
@@ -332,7 +327,6 @@ and recency information."
             (setq x (1- n-cols))
             (while (not (lusty--matrix-coord-valid-p x y))
               (cl-decf y)))))
-
       ;; Refresh with new highlight.
       (setq lusty--highlighted-coords (cons x y))
       (lusty-refresh-matches-buffer :use-previous-matrix))))
@@ -344,12 +338,10 @@ and recency information."
   (when (and lusty--active-mode
              (not (lusty--matrix-empty-p)))
     (cl-destructuring-bind (x . y) lusty--highlighted-coords
-
       ;; Unhighlight previous highlight.
       (let ((prev-highlight
              (aref (aref lusty--matches-matrix x) y)))
         (lusty--propertize-path prev-highlight))
-
       ;; Determine the coords of the next highlight.
       (cl-incf x)
       (unless (lusty--matrix-coord-valid-p x y)
@@ -357,7 +349,6 @@ and recency information."
         (cl-incf y)
         (unless (lusty--matrix-coord-valid-p x y)
           (setq y 0)))
-
       ;; Refresh with new highlight.
       (setq lusty--highlighted-coords (cons x y))
       (lusty-refresh-matches-buffer :use-previous-matrix))))
@@ -369,12 +360,10 @@ and recency information."
   (when (and lusty--active-mode
              (not (lusty--matrix-empty-p)))
     (cl-destructuring-bind (x . y) lusty--highlighted-coords
-
       ;; Unhighlight previous highlight.
       (let ((prev-highlight
              (aref (aref lusty--matches-matrix x) y)))
         (lusty--propertize-path prev-highlight))
-
       ;; Determine the coords of the next highlight.
       (let ((n-cols (length lusty--matches-matrix))
             (n-rows (length (aref lusty--matches-matrix 0))))
@@ -392,7 +381,6 @@ and recency information."
             (unless (lusty--matrix-coord-valid-p x y)
               (while (not (lusty--matrix-coord-valid-p x y))
                 (cl-decf x))))))
-
       ;; Refresh with new highlight.
       (setq lusty--highlighted-coords (cons x y))
       (lusty-refresh-matches-buffer :use-previous-matrix))))
@@ -584,17 +572,13 @@ does not begin with '.'."
              (or (null lusty--previous-minibuffer-contents)
                  (not (string= lusty--previous-minibuffer-contents
                                (minibuffer-contents-no-properties)))))
-
     (let ((startup-p (null lusty--initial-window-config)))
-
       (when startup-p
         (lusty--setup-matches-window))
-
       (setq lusty--previous-minibuffer-contents
             (minibuffer-contents-no-properties))
       (setq lusty--highlighted-coords
             (cons 0 0))
-
       ;; Refresh matches.
       (if (or startup-p
               (null lusty-idle-seconds-per-refresh)
@@ -750,8 +734,8 @@ does not begin with '.'."
                 (lusty-buffer-explorer-matches minibuffer-text)))))
         (lusty--compute-layout-matrix matches)))
     ;; Update the matches window.
-    (let ((lusty-buffer (get-buffer-create lusty-buffer-name)))
-      (with-current-buffer lusty-buffer
+    (let ((matches-buffer (get-buffer-create lusty-buffer-name)))
+      (with-current-buffer matches-buffer
         (setq buffer-read-only t)
         (let ((buffer-read-only nil))
           (when visual-line-mode
@@ -789,7 +773,7 @@ does not begin with '.'."
         ;; the minibuffer won't grow and look silly.
         (set-window-configuration lusty--initial-window-config))
       ;; Note: This is an expensive call, both in CPU and consing.
-      (fit-window-to-buffer (display-buffer lusty-buffer)))))
+      (fit-window-to-buffer (display-buffer matches-buffer)))))
 
 (defun lusty-buffer-list ()
   "Return a list of buffers ordered with those currently visible at the end."
@@ -857,9 +841,7 @@ does not begin with '.'."
          (n-items (length items))
          (lengths-v (make-vector n-items 0))
          (separator-length (length lusty-column-separator)))
-
     (let ((length-of-longest-name 0)) ; used to determine upper-bound
-
       ;; Initialize lengths-v
       (cl-loop for i from 0
                for item in items
@@ -868,7 +850,6 @@ does not begin with '.'."
             (aset lengths-v i len)
             (setq length-of-longest-name
                   (max length-of-longest-name len)))
-
       ;; Calculate an upper-bound.
       (let ((width (+ length-of-longest-name
                       separator-length))
@@ -881,7 +862,6 @@ does not begin with '.'."
           (cl-incf columns)
           (cl-incf width separator-length))
         (setq upper-bound (* columns max-visible-rows))))
-
     ;; Determine optimal row count.
     (cl-multiple-value-bind (optimal-n-rows truncated-p)
         (cond ((cl-endp items)
@@ -897,7 +877,6 @@ does not begin with '.'."
                (lusty--compute-optimal-row-count lengths-v)))
       (let ((n-columns 0)
             (column-widths '()))
-
         ;; Calculate n-columns and column-widths
         (cl-loop with total-width = 0
                  for start = 0 then end
@@ -915,9 +894,7 @@ does not begin with '.'."
               (cl-incf n-columns)
               (push col-width column-widths)
               (cl-incf total-width separator-length))
-
         (setq column-widths (nreverse column-widths))
-
         (when (and (zerop n-columns)
                    (cl-plusp n-items))
           ;; Turns out there's not enough window space to do anything clever,
@@ -928,7 +905,6 @@ does not begin with '.'."
                  (cl-reduce 'max lengths-v
                             :start 0
                             :end (min n-items max-visible-rows)))))
-
         (let ((matrix
                ;; Create an empty matrix using the calculated dimensions.
                (let ((col-vec (make-vector n-columns nil)))
@@ -936,7 +912,6 @@ does not begin with '.'."
                    (aset col-vec i
                          (make-vector optimal-n-rows nil)))
                  col-vec)))
-
           ;; Fill the matrix with propertized match strings.
           (unless (zerop n-columns)
             (let ((x 0)
@@ -951,7 +926,6 @@ does not begin with '.'."
                       (cl-return)
                     (setq col-vec (aref matrix x)))
                   (setq y 0)))))
-
           (setq lusty--matches-matrix matrix
                 lusty--matrix-column-widths column-widths
                 lusty--matrix-truncated-p truncated-p)))))
@@ -981,44 +955,35 @@ does not begin with '.'."
          (lower 1)
          (upper (min (1+ max-visible-rows)
                      n-items)))
-
     (while (/= (1+ lower) upper)
       (let* ((n-rows (/ (+ lower upper) 2)) ; Mid-point
              (col-start-index 0)
              (col-end-index (1- n-rows))
              (total-width 0))
-
-        (cl-block :column-widths
+        (cl-block 'column-widths
           (while (< col-end-index n-items)
             (cl-incf total-width
                      (lusty--compute-column-width
                       col-start-index col-end-index
                       lengths-v lengths-h))
-
             (when (> total-width available-width)
               ;; Early exit; this row count is unworkable.
               (setq total-width most-positive-fixnum)
-              (cl-return-from :column-widths))
-
+              (cl-return-from 'column-widths))
             (cl-incf total-width separator-length)
-
             (cl-incf col-start-index n-rows)
             (cl-incf col-end-index n-rows)
-
             (when (and (>= col-end-index n-items)
                        (< col-start-index n-items))
               ;; Remainder; last iteration will not be a full column.
               (setq col-end-index (1- n-items)))))
-
         ;; The final column doesn't need a separator.
         (cl-decf total-width separator-length)
-
         (if (<= total-width available-width)
             ;; This row count fits.
             (setq upper n-rows)
           ;; This row count doesn't fit.
           (setq lower n-rows))))
-
     (if (> upper max-visible-rows)
         ;; No row count can accomodate all entries; have to truncate.
         ;; (-1 for the truncate indicator)
@@ -1026,20 +991,16 @@ does not begin with '.'."
       (cl-values upper nil))))
 
 (cl-defun lusty--display-matches ()
-
   (when (lusty--matrix-empty-p)
     (lusty--print-no-matches)
     (cl-return-from lusty--display-matches))
-
   (let* ((n-columns (length lusty--matches-matrix))
          (n-rows (length (aref lusty--matches-matrix 0))))
-
     ;; Highlight the selected match.
     (cl-destructuring-bind (h-x . h-y) lusty--highlighted-coords
       (setf (aref (aref lusty--matches-matrix h-x) h-y)
             (propertize (aref (aref lusty--matches-matrix h-x) h-y)
                         'face 'lusty-match-face)))
-
     ;; Print the match matrix.
     (dotimes (y n-rows)
       (cl-loop for column-width in lusty--matrix-column-widths
@@ -1054,7 +1015,6 @@ does not begin with '.'."
                                        ?\ )))
                     (insert spacer lusty-column-separator))))))
       (insert "\n")))
-
   (when lusty--matrix-truncated-p
     (lusty--print-truncated)))
 
@@ -1090,24 +1050,20 @@ does not begin with '.'."
     (define-key map "\t" #'lusty-select-match)
     (define-key map [remap yank] #'lusty-yank)
     (define-key map [remap delete-backward-char] #'lusty-delete-backward)
-
     (define-key map "\C-n" #'lusty-highlight-next)
     (define-key map "\C-p" #'lusty-highlight-previous)
     (define-key map "\C-s" #'lusty-highlight-next)
     (define-key map "\C-r" #'lusty-highlight-previous)
     (define-key map "\C-f" #'lusty-highlight-next-column)
     (define-key map "\C-b" #'lusty-highlight-previous-column)
-
     (define-key map (kbd "<left>") #'lusty-highlight-previous-column)
     (define-key map (kbd "<right>") #'lusty-highlight-next-column)
     (define-key map (kbd "<up>") #'lusty-highlight-previous)
     (define-key map (kbd "<down>") #'lusty-highlight-next)
-
     (define-key map "\C-xd" #'lusty-launch-dired)
     (define-key map "\C-xe" #'lusty-select-current-name)
     (setq lusty-mode-map map))
   (run-hooks 'lusty-setup-hook))
-
 
 (defun lusty--run (read-fn &rest args)
   (let ((lusty--highlighted-coords (cons 0 0))
@@ -1124,12 +1080,12 @@ does not begin with '.'."
             lusty--current-idle-timer nil))))
 
 
-;;
-;; Start LiquidMetal
-;;
+
+
+;;; LiquidMetal
+
 ;; Port of Ryan McGeary's LiquidMetal fuzzy matching algorithm found at:
 ;;   https://github.com/rmm5t/liquidmetal
-;;
 
 (defmacro lusty--LM-score-no-match () 0.0)
 (defmacro lusty--LM-score-match () 1.0)
@@ -1180,20 +1136,14 @@ does not begin with '.'."
                                  :end pos)))
                  (aset scores pos (lusty--LM-score-match))
                  (setq last-index (1+ pos))))
-
              (let ((trailing-score
                     (if started-p
                         (lusty--LM-score-trailing-but-started)
                       (lusty--LM-score-trailing))))
                (cl-fill scores trailing-score :start last-index))
-
              (/ (cl-loop for score across scores sum score)
                 str-len ))))))
 (defalias 'LM-score 'lusty-LM-score)  ;; deprecated
-
-;;
-;; End LiquidMetal
-;;
 
 (provide 'lusty-explorer)
 
