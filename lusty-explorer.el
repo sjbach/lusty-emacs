@@ -690,6 +690,7 @@ does not begin with '.'."
           (setq-local indicate-empty-lines nil)
           (setq-local word-wrap nil)
           (setq-local line-prefix nil)
+          (buffer-disable-undo)
           (with-silent-modifications
             (atomic-change-group
               (erase-buffer)
