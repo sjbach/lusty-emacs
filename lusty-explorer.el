@@ -606,10 +606,12 @@ does not begin with '.'."
        ;;                        (window-frame test-window)), right?
        (window-height (minibuffer-window)))))
 
-(defun lusty--exploitable-window-body-width ()
-  (let* ((window (get-buffer-window
-                  (get-buffer-create lusty-buffer-name)))
-         (body-width (window-body-width window))
+(defun lusty--exploitable-window-body-width (&optional window)
+  (unless window
+    (setq window
+          (or (get-buffer-window (get-buffer-create lusty-buffer-name))
+              (selected-window))))
+  (let* ((body-width (window-body-width window))
          (window-fringe-absent-p
           (and (equal (window-fringes) '(0 0 nil nil))
                ;; (Probabably these are redundant checks.)
@@ -950,12 +952,12 @@ does not begin with '.'."
 
 (defun lusty--print-no-matches ()
   (insert lusty-no-matches-string)
-  (let ((fill-column (window-width)))
+  (let ((fill-column (window-body-width)))
     (center-line)))
 
 (defun lusty--print-truncated ()
   (insert lusty-truncated-string)
-  (let ((fill-column (window-width)))
+  (let ((fill-column (window-body-width)))
     (center-line)))
 
 (defun lusty-delete-backward (count)
