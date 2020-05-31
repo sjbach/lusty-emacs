@@ -37,10 +37,6 @@
 ;; To create a new buffer with the given name, press C-x e.  To open dired at
 ;; the current viewed directory, press C-x d.
 ;;
-;; Note: lusty-explorer.el benefits greatly from byte-compilation.  (If you
-;; installed this package via an automatic system like `package-install', which
-;; is likely, then it's probably already been compiled.)
-;;
 ;;; Customization:
 ;;  --------------
 ;;
@@ -206,9 +202,9 @@ buffer names in the matches window; 0.10 = %10."
   (if (= start-index end-index)
       ;; This situation describes a column consisting of a single element.
       (aref lengths-v start-index)
-    (let* ((range (cons start-index end-index))
-           (width (gethash range lengths-h)))
-      (or width
+    (let* ((range-key (cons start-index end-index))
+           (memoized-width (gethash range-key lengths-h)))
+      (or memoized-width
           (let* ((split-point
                   (+ start-index
                      ;; Same thing as: (/ (- end-index start-index) 2)
@@ -221,7 +217,7 @@ buffer names in the matches window; 0.10 = %10."
                   (lusty--compute-column-width
                    (1+ split-point) end-index
                    lengths-v lengths-h)))
-            (puthash range
+            (puthash range-key
                      (max width-first-half width-second-half)
                      lengths-h))))))
 
@@ -969,10 +965,11 @@ does not begin with '.'."
                     (setq col-vec (aref matrix x)))
                   (setq y 0)))))
 
-
           (setq lusty--matches-matrix matrix
                 lusty--matrix-column-widths column-widths
-                lusty--matrix-truncated-p truncated-p))))))
+                lusty--matrix-truncated-p truncated-p)))))
+  ;; No return value.
+  (cl-values))
 
 ;; Returns number of rows and whether this row count will truncate the matches.
 (cl-defun lusty--compute-optimal-row-count (lengths-v)
