@@ -112,11 +112,6 @@ buffer names in the matches window; 0.10 = %10."
   :type 'float
   :group 'lusty-explorer)
 
-(defcustom lusty-fully-expand-matches-window-p t
-  "Whether or not to expand the matches window across the whole frame."
-  :type 'boolean
-  :group 'lusty-explorer)
-
 (defcustom lusty-case-fold t
   "Ignore case when matching if non-nil."
   :type 'boolean
@@ -594,18 +589,13 @@ does not begin with '.'."
 
 (defun lusty-max-window-height ()
   "Return the expected maximum allowable height of a window on this frame"
-  ;; FIXME: are there cases where this is incorrect?
-  (let* ((lusty-window
-          (get-buffer-window
-           (get-buffer-create lusty-buffer-name)))
-         (other-window
-          ;; In case the *LustyMatches* window was closed
-          (or lusty-window
+  (let* ((test-window
+          (or (when-let ((buffer (get-buffer lusty-buffer-name)))
+                (get-buffer-window buffer))
+              ;; Fall back to a different window.
               (if (minibufferp)
-                  (next-window (selected-window) :skip-mini)
-                (selected-window))))
-         (test-window
-          (or lusty-window other-window)))
+                  (next-window (selected-window) 'skip-mini)
+                (selected-window)))))
     (cl-assert test-window)
     (- (frame-height)
        ;; Account for modeline and/or header...
@@ -646,75 +636,14 @@ does not begin with '.'."
         (1- body-width)
       body-width)))
 
-;; Only needed for Emacs 23 compatibility, because the Emacs root window in an
-;; already split frame is not a living window.
-;; TODO: remove code required for Emacs 23 compatibility.
-(defun lusty-lowest-window ()
-  "Return the lowest window on the frame."
-  (cl-flet ((iterate-non-dedicated-window (start-win direction)
-           ;; Skip dedicated windows when iterating.
-           (let ((iterating-p t)
-                 (next start-win))
-             (while iterating-p
-               (setq next (if (eq direction :forward)
-                              (next-window next :skip-mini)
-                            (previous-window next :skip-mini)))
-               (when (or (not (window-dedicated-p next))
-                         (eq next start-win))
-                 (setq iterating-p nil)))
-             next)))
-  (let* ((current-window (if (or (minibufferp)
-                                 (window-dedicated-p (selected-window)))
-                             (iterate-non-dedicated-window (selected-window)
-                                                           :forward)
-                           (selected-window)))
-         (lowest-window current-window)
-         (bottom-edge (cl-fourth (window-pixel-edges current-window)))
-         (last-window (iterate-non-dedicated-window current-window :backward))
-         (window-search-p t))
-    (while window-search-p
-      (let* ((this-window (iterate-non-dedicated-window current-window
-                                                        :forward))
-             (next-bottom-edge (cl-fourth (window-pixel-edges this-window))))
-        (when (< bottom-edge next-bottom-edge)
-          (setq bottom-edge next-bottom-edge)
-          (setq lowest-window this-window))
-        (setq current-window this-window)
-        (when (eq last-window this-window)
-          (setq window-search-p nil))))
-    lowest-window)))
-
-(defun lusty--setup-window-to-split ()
-  ;; Emacs 23 compatibility
-  ;; TODO: remove code required for Emacs 23 compatibility.
-  (let ((root-window (frame-root-window)))
-    (if (window-live-p root-window)
-        root-window
-      (lusty-lowest-window))))
-
 (defun lusty--setup-matches-window ()
-  (let ((lusty-buffer (get-buffer-create lusty-buffer-name)))
+  (let ((matches-buffer (get-buffer-create lusty-buffer-name)))
     (save-selected-window
-      (let* ((window (lusty--setup-window-to-split))
-             (lusty-window (condition-case nil (split-window window)
-                               (error ; Perhaps it is too small.
-                                (delete-window window)
-                                (split-window (lusty--setup-window-to-split))))))
-        (select-window lusty-window)
-        (when lusty-fully-expand-matches-window-p
-          ;; Attempt to grow the window to cover the full frame.  Sometimes
-          ;; this takes more than one try, but we don't want to accidentally
-          ;; loop on it infinitely in the case of some unconventional
-          ;; window/frame setup.
-          (cl-loop repeat 5
-                   while (< (window-width) (frame-width))
-                   do
-                (condition-case nil
-                    (enlarge-window-horizontally (- (frame-width)
-                                                    (window-width)))
-                  (error
-                   (cl-return)))))
-        (set-window-buffer lusty-window lusty-buffer))))
+      (let* ((window
+              (let ((ignore-window-parameters t))
+                (split-window (frame-root-window) -1 'below))))
+        (set-window-buffer window matches-buffer)
+        (select-window window 'norecord))))
   ;; Window configuration may be restored intermittently.
   (setq lusty--initial-window-config (current-window-configuration)))
 
