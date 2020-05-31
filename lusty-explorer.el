@@ -1187,7 +1187,7 @@ does not begin with '.'."
                       (lusty--LM-score-trailing))))
                (cl-fill scores trailing-score :start last-index))
 
-             (/ (cl-loop for score in scores sum score)
+             (/ (cl-loop for score across scores sum score)
                 str-len ))))))
 (defalias 'LM-score 'lusty-LM-score)  ;; deprecated
 
