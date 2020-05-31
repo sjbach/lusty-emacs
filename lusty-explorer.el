@@ -740,7 +740,6 @@ does not begin with '.'."
   (let* ((minibuffer-text (if lusty--wrapping-ido-p
                               ido-text
                             (minibuffer-contents-no-properties))))
-
     (unless use-previous-matrix-p
       ;; Refresh the matches and layout matrix
       (let ((matches
@@ -750,58 +749,46 @@ does not begin with '.'."
                (:buffer-explorer
                 (lusty-buffer-explorer-matches minibuffer-text)))))
         (lusty--compute-layout-matrix matches)))
-
     ;; Update the matches window.
     (let ((lusty-buffer (get-buffer-create lusty-buffer-name)))
       (with-current-buffer lusty-buffer
         (setq buffer-read-only t)
         (let ((buffer-read-only nil))
-              (when (and (boundp 'visual-line-mode)
-                         visual-line-mode)
-                ;; Remove visual-line-mode if it's enabled to make wrapping --
-                ;; which we don't want, and which shouldn't happen -- look a
-                ;; little better. This is probably not necessary or useful
-                ;; given we're setting `truncate-lines` below.
-                (visual-line-mode -1))
-              (unless truncate-lines
-                ;; More gracefully handle any remaining bugs in the layout
-                ;; algorithm. If an inserted line of completions happens
-                ;; to be longer than the window's text body -- which
-                ;; shouldn't happen -- don't wrap the line, just show a
-                ;; truncation indicator in the fringe (or, if there's no
-                ;; fringe, in the final text column).
-                ;;
-                ;; The below is most of what `(toggle-truncate-lines 1)` does,
-                ;; but without emitting a noisy line to *Messages*.
-                (setq truncate-lines t)
-                (let ((window (get-buffer-window lusty-buffer)))
-                  (when window
-                    (set-window-hscroll window 0))))
-              ;; Minor look-and-feel tweaks. We disable these display settings
-              ;; in the completions buffer in case the user has enabled them
-              ;; globally. Is this overreaching? Maybe, I'm not sure.
-              (when indicate-buffer-boundaries
-                (setq indicate-buffer-boundaries nil))
-              (when show-trailing-whitespace
-                (setq show-trailing-whitespace nil))
-              ;; (Probably not necessary or useful.)
-              (when indicate-empty-lines
-                (setq indicate-empty-lines nil))
-              ;; There is also `overflow-newline-into-fringe`, which would best
-              ;; be t: "If nil, also continue lines which are exactly as wide
-              ;; as the window"; but it can't be set buffer-local.
-              (with-silent-modifications
-                (atomic-change-group
-                  (erase-buffer)
-                  (lusty--display-matches)))
-              (goto-char (point-min))
-              (set-buffer-modified-p nil)))
-
+          (when visual-line-mode
+            (visual-line-mode -1))
+          (unless truncate-lines
+            ;; More gracefully handle any unconsidered corner cases in the
+            ;; layout algorithm. If an inserted line of completions happens to
+            ;; be longer than the window's text body -- which shouldn't happen
+            ;; -- don't wrap the line, just show a truncation indicator in the
+            ;; fringe (or, if there's no fringe, in the final text column).
+            ;;
+            ;; (Don't emit noisy line about truncation to *Messages*.)
+            (let ((message-log-max nil))
+              (toggle-truncate-lines 1)
+              (message "")))
+          ;; No mode-line.
+          (when mode-line-format
+            (setq-local mode-line-format nil))
+          ;; Minor look-and-feel tweaks. We disable these display settings in
+          ;; the completions buffer in case the user has enabled them globally.
+          (setq-local indicate-buffer-boundaries nil)
+          (setq-local show-trailing-whitespace nil)
+          (setq-local indicate-empty-lines nil)
+          (setq-local word-wrap nil)
+          (setq-local line-prefix nil)
+          (with-silent-modifications
+            (atomic-change-group
+              (erase-buffer)
+              (lusty--display-matches)))
+          (goto-char (point-min))
+          (set-buffer-modified-p nil)))
       ;; If our matches window has somehow become the only window:
       (when (one-window-p t)
-        ;; Restore original window configuration before fitting the
-        ;; window so the minibuffer won't grow and look silly.
+        ;; Restore original window configuration before fitting the window so
+        ;; the minibuffer won't grow and look silly.
         (set-window-configuration lusty--initial-window-config))
+      ;; Note: This is an expensive call, both in CPU and consing.
       (fit-window-to-buffer (display-buffer lusty-buffer)))))
 
 (defun lusty-buffer-list ()
