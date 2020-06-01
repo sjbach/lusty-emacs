@@ -566,7 +566,8 @@ does not begin with '.'."
                                (minibuffer-contents-no-properties)))))
     (let ((startup-p (null lusty--initial-window-config)))
       (when startup-p
-        (lusty--setup-matches-window))
+        (lusty--setup-matches-window
+         (lusty--get-or-create-matches-buffer lusty-buffer-name)))
       (setq lusty--previous-minibuffer-contents
             (minibuffer-contents-no-properties))
       (setq lusty--highlighted-coords
@@ -608,7 +609,7 @@ on the current frame."
 (defun lusty--exploitable-window-body-width (&optional window)
   (unless window
     (setq window
-          (or (get-buffer-window (get-buffer-create lusty-buffer-name))
+          (or (get-buffer-window (get-buffer lusty-buffer-name))
               (selected-window))))
   (let* ((body-width (window-body-width window))
          (window-fringe-absent-p
@@ -637,14 +638,14 @@ on the current frame."
         (1- body-width)
       body-width)))
 
-(defun lusty--setup-matches-window ()
-  (let ((matches-buffer (get-buffer-create lusty-buffer-name)))
     (save-selected-window
       (let* ((window
               (let ((ignore-window-parameters t))
                 (split-window (frame-root-window) -1 'below))))
-        (set-window-buffer window matches-buffer)
         (select-window window 'norecord))))
+(defun lusty--setup-matches-window (buffer)
+  (cl-assert (buffer-live-p buffer))
+    (set-window-buffer window buffer)
   ;; Window configuration may be restored intermittently.
   (setq lusty--initial-window-config (current-window-configuration)))
 
@@ -676,6 +677,42 @@ on the current frame."
 Not relevant to the user, generally."
   :group 'lusty-explorer)
 
+(defun lusty--get-or-create-matches-buffer (buffer-name)
+  (pcase-let ((`(,matches-buffer ,newly-created-p)
+               (pcase (get-buffer buffer-name)
+                 ((and (pred buffer-live-p) buf)
+                  (cl-values buf nil))
+                 (_
+                  (cl-values (get-buffer-create buffer-name) t)))))
+    (when newly-created-p
+      (with-current-buffer matches-buffer
+        (lusty--matches-buffer-mode)
+        (when visual-line-mode
+          (visual-line-mode -1))
+        (unless truncate-lines
+          ;; More gracefully handle any unconsidered corner cases in the
+          ;; layout algorithm. If an inserted line of completions happens to
+          ;; be longer than the window's text body -- which shouldn't happen
+          ;; -- don't wrap the line, just show a truncation indicator in the
+          ;; fringe (or, if there's no fringe, in the final text column).
+          ;;
+          ;; (Don't emit noisy line about truncation to *Messages*.)
+          (let ((message-log-max nil))
+            (toggle-truncate-lines 1)
+            (message "")))
+        ;; No mode-line -- acquire an extra display row.
+        (when mode-line-format
+          (setq-local mode-line-format nil))
+        ;; Minor look-and-feel tweaks. We disable these display settings in
+        ;; the completions buffer in case the user has enabled them globally.
+        (setq-local indicate-buffer-boundaries nil)
+        (setq-local show-trailing-whitespace nil)
+        (setq-local indicate-empty-lines nil)
+        (setq-local word-wrap nil)
+        (setq-local line-prefix nil)
+        (buffer-disable-undo)))
+    matches-buffer))
+
 (defun lusty-refresh-matches-buffer (&optional use-previous-matrix-p)
   "Refresh *Lusty-Matches*."
   (cl-assert (minibufferp))
@@ -692,39 +729,9 @@ Not relevant to the user, generally."
                 (lusty-buffer-explorer-matches minibuffer-text)))))
         (lusty--compute-layout-matrix matches)))
     ;; Create/update the matches window.
-    (pcase-let ((`(,matches-buffer ,newly-created-p)
-                 (pcase (get-buffer lusty-buffer-name)
-                   ((and (pred buffer-live-p) buf)
-                    (cl-values buf nil))
-                   (_
-                    (cl-values (get-buffer-create lusty-buffer-name) t)))))
+    (let ((matches-buffer
+           (lusty--get-or-create-matches-buffer lusty-buffer-name)))
       (with-current-buffer matches-buffer
-        (when newly-created-p
-          (when visual-line-mode
-            (visual-line-mode -1))
-          (unless truncate-lines
-            ;; More gracefully handle any unconsidered corner cases in the
-            ;; layout algorithm. If an inserted line of completions happens to
-            ;; be longer than the window's text body -- which shouldn't happen
-            ;; -- don't wrap the line, just show a truncation indicator in the
-            ;; fringe (or, if there's no fringe, in the final text column).
-            ;;
-            ;; (Don't emit noisy line about truncation to *Messages*.)
-            (let ((message-log-max nil))
-              (toggle-truncate-lines 1)
-              (message "")))
-          ;; No mode-line.
-          (when mode-line-format
-            (setq-local mode-line-format nil))
-          ;; Minor look-and-feel tweaks. We disable these display settings in
-          ;; the completions buffer in case the user has enabled them globally.
-          (setq-local indicate-buffer-boundaries nil)
-          (setq-local show-trailing-whitespace nil)
-          (setq-local indicate-empty-lines nil)
-          (setq-local word-wrap nil)
-          (setq-local line-prefix nil)
-          (buffer-disable-undo)
-          (lusty--matches-buffer-mode))
         (let ((buffer-read-only nil))
           (with-silent-modifications
             (atomic-change-group
