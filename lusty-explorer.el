@@ -76,7 +76,6 @@
 ;; - highlight opened buffers in filesystem explorer
 ;; - FIX: deal with permission-denied
 ;; - C-e/C-a -> last/first column?
-;; - C-f/C-b -> next/previous column?
 ;; - config var: C-x d opens highlighted dir instead of current dir
 
 
@@ -108,7 +107,7 @@ always immediate."
 
 (defcustom lusty-buffer-MRU-contribution 0.1
   "How much influence buffer recency-of-use should have on ordering of
-buffer names in the matches window; 0.10 = %10."
+buffer names in the matches window; 0.10 = 10%."
   :type 'float
   :group 'lusty-explorer)
 
@@ -152,9 +151,7 @@ buffer names in the matches window; 0.10 = %10."
   (let ((map (make-sparse-keymap)))
     (dolist (b '((switch-to-buffer . lusty-buffer-explorer)
                  (find-file . lusty-file-explorer)))
-      (if (fboundp 'command-remapping)
-          (define-key map (vector 'remap (car b)) (cdr b))
-        (substitute-key-definition (car b) (cdr b) map global-map)))
+      (define-key map (vector 'remap (car b)) (cdr b)))
     map))
 
 (defvar lusty--active-mode nil)
@@ -243,11 +240,12 @@ Uses the faces `lusty-directory-face', `lusty-slash-face', and
             (concat "\\(?:" (regexp-opt completion-ignored-extensions) "\\)$"))
            (minibuffer-local-filename-completion-map lusty-mode-map)
            (file
-            ;; read-file-name is silly in that if the result is equal to the
+            ;; `read-file-name' is odd in that if the result is equal to the
             ;; dir argument, it gets converted to the default-filename
-            ;; argument.  Set it explicitly to "" so if lusty-launch-dired is
-            ;; called in the directory we start at, the result is that directory
-            ;; instead of the name of the current buffer.
+            ;; argument. Set default-filename explicitly to "" so if
+            ;; `lusty-launch-dired' is called in the directory we start at, the
+            ;; result is that directory rather than the name of the current
+            ;; buffer.
             (lusty--run 'read-file-name default-directory "")))
       (when file
         (switch-to-buffer
@@ -429,11 +427,11 @@ default behavior, generally less useful)."
   (let ((text (string-trim (current-kill arg))))
     (cond
      ((and (region-active-p)
-           (bound-and-true-p delete-selection-mode))
+           delete-selection-mode)
       (delete-region (region-beginning) (region-end))
       (insert-for-yank text))
      ((and (eq (char-before) ?/)
-           (eq (char-before (- (point) 1)) ?:)
+           (eq (char-before (1- (point))) ?:)
            (string-prefix-p "/" text))
       (insert-for-yank (replace-regexp-in-string "^/" ""
                                                  text)))
@@ -558,9 +556,8 @@ does not begin with '.'."
   (lusty-set-minibuffer-text match)
   (minibuffer-complete-and-exit))
 
-;; This may seem overkill, but it's the only way I've found to update the
-;; matches list for every edit to the minibuffer.  Wrapping the keymap can't
-;; account for user bindings or commands and would also fail for viper.
+;; This may seem overkill, but it's the best way I've found to update the
+;; matches list for every edit to the minibuffer.
 (defun lusty--post-command-function ()
   (cl-assert lusty--active-mode)
   (when (and (minibufferp)
@@ -727,7 +724,7 @@ Not relevant to the user, generally."
           (goto-char (point-min))
           (set-buffer-modified-p nil)))
       ;; If our matches window has somehow become the only window:
-      (when (one-window-p t)
+      (when (one-window-p 'nomini)
         ;; Restore original window configuration before fitting the window so
         ;; the minibuffer won't grow and look silly.
         (set-window-configuration lusty--initial-window-config))
@@ -782,7 +779,7 @@ Not relevant to the user, generally."
          (filtered (lusty-filter-files file-portion files)))
     (if (or (string= file-portion "")
             (string= file-portion "."))
-        (sort filtered 'string<)
+        (sort filtered #'string<)
       (lusty-sort-by-fuzzy-score filtered file-portion))))
 
 ;; Principal goal: fit as many items as possible into as few buffer/window rows
@@ -861,7 +858,7 @@ Not relevant to the user, generally."
           (setq n-columns 1)
           (setq column-widths
                 (list
-                 (cl-reduce 'max lengths-v
+                 (cl-reduce #'max lengths-v
                             :start 0
                             :end (min n-items max-visible-rows)))))
         (let ((matrix
@@ -988,16 +985,18 @@ Not relevant to the user, generally."
     (center-line)))
 
 (defun lusty-delete-backward (count)
-  "Delete char backwards, or at beginning of buffer, go up one level."
+  "Delete previous COUNT characters. If no count provided and if
+cursor appears to be at the beginning of a directory, go up one
+level."
   (interactive "P")
   (if count
       (call-interactively 'delete-backward-char)
-    (if (= (char-before) ?/)
+    (if (eq (char-before) ?/)
         (progn
-          (backward-delete-char 1)
-          (while (and (/= (char-before) ?/)
+          (delete-char -1)
+          (while (and (not (eq (char-before) ?/))
                       (not (get-text-property (1- (point)) 'read-only)))
-            (backward-delete-char 1)))
+            (delete-char -1)))
       (unless (get-text-property (1- (point)) 'read-only)
         (call-interactively 'delete-backward-char)))))
 
