@@ -136,13 +136,23 @@ buffer names in the matches window; 0.10 = 10%."
   "The face used for normal files."
   :group 'lusty-explorer)
 
+(defface lusty-no-matches
+  '((t :inherit isearch-fail :weight bold))
+  "Face used for styling the \"NO MATCHES\" line."
+  :group 'lusty-explorer)
+
+(defface lusty-truncated
+  '((t :inherit shadow :weight bold))
+  "Face used for styling the \"TRUNCATED\" token."
+  :group 'lusty-explorer)
+
 (defvar lusty-buffer-name " *Lusty-Matches*")
 (defvar lusty-prompt ">> ")
 (defvar lusty-column-separator "    ")
 (defvar lusty-no-matches-string
-  (propertize "-- NO MATCHES --" 'face 'font-lock-warning-face))
+  "-- NO MATCHES --")
 (defvar lusty-truncated-string
-  (propertize "-- TRUNCATED --" 'face 'font-lock-comment-face))
+  "TRUNCATED")
 
 (defvar lusty-mode-map nil
   "Minibuffer keymap for `lusty-file-explorer' and `lusty-buffer-explorer'.")
@@ -989,7 +999,7 @@ Not relevant to the user, generally."
 
 (cl-defun lusty--display-matches ()
   (when (lusty--matrix-empty-p)
-    (lusty--print-no-matches)
+    (lusty--print-no-matches (lusty--exploitable-window-body-width))
     (cl-return-from lusty--display-matches))
   (let* ((n-columns (length lusty--matches-matrix))
          (n-rows (length (aref lusty--matches-matrix 0))))
@@ -1013,16 +1023,27 @@ Not relevant to the user, generally."
                     (insert spacer lusty-column-separator))))))
       (insert "\n")))
   (when lusty--matrix-truncated-p
-    (lusty--print-truncated)))
+    (lusty--print-truncated (lusty--exploitable-window-body-width))))
 
-(defun lusty--print-no-matches ()
-  (insert lusty-no-matches-string)
-  (let ((fill-column (window-body-width)))
-    (center-line)))
+(defun lusty--print-no-matches (row-width)
+  "Insert a \"NO MATCHES\" line at point."
+  (cl-assert (and (integerp row-width) (cl-plusp row-width)))
+  (let ((start-pos (point)))
+    (insert lusty-no-matches-string)
+    (let* ((fill-column row-width))
+      (center-line)
+      ;; This should be in terms of columns, not buffer positions, but
+      ;; every character involved has a width of 1 column so it's okay.
+      (insert (make-string (- row-width (- (point) start-pos ))
+                           ?\  )))
+  (set-text-properties start-pos (point)
+                       '(face lusty-no-matches))))
 
-(defun lusty--print-truncated ()
-  (insert lusty-truncated-string)
-  (let ((fill-column (window-body-width)))
+(defun lusty--print-truncated (row-width)
+  "Insert a \"TRUNCATED\" line at point."
+  (cl-assert (and (integerp row-width) (cl-plusp row-width)))
+  (insert (propertize lusty-truncated-string 'face 'lusty-truncated))
+  (let ((fill-column row-width))
     (center-line)))
 
 (defun lusty-delete-backward (count)
