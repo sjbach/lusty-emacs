@@ -228,7 +228,6 @@ Uses the faces `lusty-directory-face', `lusty-slash-face', and
       (put-text-property 0 (1+ last) 'face 'lusty-file-face path)))
   path)
 
-
 ;;;###autoload
 (defun lusty-file-explorer ()
   "Launch the file/directory mode of LustyExplorer."
@@ -1081,8 +1080,9 @@ level."
   (setq lusty--previous-minibuffer-contents nil
         lusty--initial-window-config nil
         lusty--current-idle-timer nil)
-  (when (buffer-live-p (get-buffer lusty-buffer-name))
-    (kill-buffer (get-buffer lusty-buffer-name))))
+  (when-let ((matches-buffer (get-buffer lusty-buffer-name)))
+    (when (buffer-live-p matches-buffer)
+      (kill-buffer matches-buffer))))
 
 
 
