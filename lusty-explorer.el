@@ -649,6 +649,31 @@ does not begin with '.'."
   ;; Window configuration may be restored intermittently.
   (setq lusty--initial-window-config (current-window-configuration)))
 
+(defun lusty--quit-if-active ()
+  (interactive)
+  (if lusty--active-mode
+      ;; This will lead to an unwind which calls `lusty--clean-up'.
+      (minibuffer-keyboard-quit)
+    ;; Fallback; lusty is not running. This is anomalous. Either lusty crashed
+    ;; and this window is left over, or the user has purposely selected the
+    ;; hidden buffer in another window. Just quit the buffer and keep the
+    ;; window.
+    (quit-window)))
+
+(defvar lusty--matches-buffer-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map special-mode-map)
+    ;; Realistically, user isn't intending to run `revert-buffer'.
+    (define-key map "g" nil)
+    ;; Have "q" and C-g" perform exit and clean-up.
+    (define-key map [remap quit-window] #'lusty--quit-if-active)
+    (define-key map [remap keyboard-quit] #'lusty--quit-if-active) map))
+
+(define-derived-mode lusty--matches-buffer-mode special-mode "Lusty-Matches"
+  "Major mode used in the \"*Lusty-Matches*\" buffer.
+Not relevant to the user, generally."
+  :group 'lusty-explorer)
+
 (defun lusty-refresh-matches-buffer (&optional use-previous-matrix-p)
   "Refresh *Lusty-Matches*."
   (cl-assert (minibufferp))
@@ -667,7 +692,7 @@ does not begin with '.'."
     ;; Update the matches window.
     (let ((matches-buffer (get-buffer-create lusty-buffer-name)))
       (with-current-buffer matches-buffer
-        (setq buffer-read-only t)
+        (lusty--matches-buffer-mode)
         (let ((buffer-read-only nil))
           (when visual-line-mode
             (visual-line-mode -1))
@@ -1006,11 +1031,15 @@ does not begin with '.'."
     (unwind-protect
         (save-window-excursion
           (apply read-fn lusty-prompt args))
-      (remove-hook 'post-command-hook #'lusty--post-command-function)
-      (setq lusty--previous-minibuffer-contents nil
-            lusty--initial-window-config nil
-            lusty--current-idle-timer nil))))
+      (lusty--clean-up))))
 
+(defun lusty--clean-up ()
+  (remove-hook 'post-command-hook #'lusty--post-command-function)
+  (setq lusty--previous-minibuffer-contents nil
+        lusty--initial-window-config nil
+        lusty--current-idle-timer nil)
+  (when (buffer-live-p (get-buffer lusty-buffer-name))
+    (kill-buffer (get-buffer lusty-buffer-name))))
 
 
 
