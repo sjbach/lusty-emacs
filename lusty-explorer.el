@@ -588,7 +588,8 @@ does not begin with '.'."
                                    #'lusty-refresh-matches-buffer))))))
 
 (defun lusty-max-window-height ()
-  "Return the expected maximum allowable height of a window on this frame"
+  "Return the expected maximum allowable height of a window body
+on the current frame."
   (let* ((test-window
           (or (when-let ((buffer (get-buffer lusty-buffer-name)))
                 (get-buffer-window buffer))
@@ -598,13 +599,14 @@ does not begin with '.'."
                 (selected-window)))))
     (cl-assert test-window)
     (- (frame-height)
-       ;; Account for modeline and/or header...
+       ;; Account for mode line and/or header.
        (- (window-height test-window)
           (window-body-height test-window))
-       ;; And minibuffer height.
-       ;; FIXME: but only if (eq (window-frame (minibuffer-window))
-       ;;                        (window-frame test-window)), right?
-       (window-height (minibuffer-window)))))
+       ;; Account for minibuffer height.
+       (if (eq (window-frame (minibuffer-window))
+               (window-frame test-window))
+           (window-height (minibuffer-window))
+         0))))
 
 (defun lusty--exploitable-window-body-width (&optional window)
   (unless window
