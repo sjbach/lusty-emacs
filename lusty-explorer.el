@@ -565,34 +565,37 @@ does not begin with '.'."
   (lusty-set-minibuffer-text match)
   (minibuffer-complete-and-exit))
 
-;; This may seem overkill, but it's the best way I've found to update the
-;; matches list for every edit to the minibuffer.
+;; Called after each command while lusty is running. We only care about
+;; commands that modify the minibuffer content, e.g. `self-insert-command'.
 (defun lusty--post-command-function ()
-  (cl-assert lusty--active-mode)
-  (when (and (minibufferp)
-             (or (null lusty--previous-minibuffer-contents)
-                 (not (string= lusty--previous-minibuffer-contents
-                               (minibuffer-contents-no-properties)))))
-    (let ((startup-p (null lusty--initial-window-config)))
-      (when startup-p
-        (lusty--setup-matches-window
-         (lusty--get-or-create-matches-buffer lusty-buffer-name)))
-      (setq lusty--previous-minibuffer-contents
-            (minibuffer-contents-no-properties))
-      (setq lusty--highlighted-coords
-            (cons 0 0))
-      ;; Refresh matches.
-      (if (or startup-p
-              (null lusty-idle-seconds-per-refresh)
-              (zerop lusty-idle-seconds-per-refresh)
-              (eq lusty--active-mode :buffer-explorer))
-          ;; No idle timer on first refresh, and never for buffer explorer.
-          (lusty-refresh-matches-buffer)
-        (when lusty--current-idle-timer
-          (cancel-timer lusty--current-idle-timer))
-        (setq lusty--current-idle-timer
-              (run-with-idle-timer lusty-idle-seconds-per-refresh nil
-                                   #'lusty-refresh-matches-buffer))))))
+  (if (null lusty--active-mode)
+      ;; Anomalous; lusty is not running but this function is somehow still
+      ;; attached to `post-command-hook'.
+      (lusty--clean-up)
+    (when (and (minibufferp)
+               (or (null lusty--previous-minibuffer-contents)
+                   (not (string= lusty--previous-minibuffer-contents
+                                 (minibuffer-contents-no-properties)))))
+      (let ((startup-p (null lusty--initial-window-config)))
+        (when startup-p
+          (lusty--setup-matches-window
+           (lusty--get-or-create-matches-buffer lusty-buffer-name)))
+        (setq lusty--previous-minibuffer-contents
+              (minibuffer-contents-no-properties))
+        (setq lusty--highlighted-coords
+              (cons 0 0))
+        ;; Refresh matches.
+        (if (or startup-p
+                (null lusty-idle-seconds-per-refresh)
+                (zerop lusty-idle-seconds-per-refresh)
+                (eq lusty--active-mode :buffer-explorer))
+            ;; No idle timer on first update, and never for buffer explorer.
+            (lusty-refresh-matches-buffer)
+          (when lusty--current-idle-timer
+            (cancel-timer lusty--current-idle-timer))
+          (setq lusty--current-idle-timer
+                (run-with-idle-timer lusty-idle-seconds-per-refresh nil
+                                     #'lusty-refresh-matches-buffer)))))))
 
 (defun lusty--max-window-body-height (&optional window)
   "Return the expected maximum allowable height of a window body
@@ -1102,6 +1105,8 @@ level."
         (lusty--matches-matrix (make-vector 0 nil))
         (lusty--matrix-column-widths '())
         (lusty--matrix-truncated-p nil))
+    ;; A post-command hook function may seem excessive, but it's the best way
+    ;; I've found to update the matches list for every edit to the minibuffer.
     (add-hook 'post-command-hook #'lusty--post-command-function t)
     (unwind-protect
         (save-window-excursion
