@@ -585,26 +585,32 @@ does not begin with '.'."
               (run-with-idle-timer lusty-idle-seconds-per-refresh nil
                                    #'lusty-refresh-matches-buffer))))))
 
-(defun lusty-max-window-height ()
+(defun lusty--max-window-body-height (&optional window)
   "Return the expected maximum allowable height of a window body
 on the current frame."
+  (cl-assert (or (null window)
+                 (window-live-p window)))
   (let* ((test-window
-          (or (when-let ((buffer (get-buffer lusty-buffer-name)))
+          (or window
+              (when-let ((buffer (get-buffer lusty-buffer-name)))
                 (get-buffer-window buffer))
               ;; Fall back to a different window.
               (if (minibufferp)
                   (next-window (selected-window) 'skip-mini)
                 (selected-window)))))
     (cl-assert test-window)
-    (- (frame-height)
-       ;; Account for mode line and/or header.
-       (- (window-height test-window)
-          (window-body-height test-window))
-       ;; Account for minibuffer height.
-       (if (eq (window-frame (minibuffer-window))
-               (window-frame test-window))
-           (window-height (minibuffer-window))
-         0))))
+    (let* ((max-delta
+            (window-max-delta test-window
+                              nil  ; not horizontal
+                              test-window)))  ; ignore restrictions
+      (+ (window-height test-window)
+         max-delta))))
+(defalias 'lusty-max-window-height 'lusty--max-window-body-height
+  "Deprecated name.")
+
+(defun lusty--min-matches-window-height ()
+  ;; A height of 1 works but looks too cramped.
+  (max 2 window-safe-min-height))
 
 (defun lusty--exploitable-window-body-width (&optional window)
   (unless window
@@ -638,14 +644,14 @@ on the current frame."
         (1- body-width)
       body-width)))
 
-    (save-selected-window
-      (let* ((window
-              (let ((ignore-window-parameters t))
-                (split-window (frame-root-window) -1 'below))))
-        (select-window window 'norecord))))
 (defun lusty--setup-matches-window (buffer)
   (cl-assert (buffer-live-p buffer))
-    (set-window-buffer window buffer)
+  (let* ((window
+          (let ((ignore-window-parameters t))
+            (split-window (frame-root-window)
+                          (- (lusty--min-matches-window-height))
+                          'below))))
+    (set-window-buffer window buffer))
   ;; Window configuration may be restored intermittently.
   (setq lusty--initial-window-config (current-window-configuration)))
 
@@ -744,8 +750,25 @@ Not relevant to the user, generally."
         ;; Restore original window configuration before fitting the window so
         ;; the minibuffer won't grow and look silly.
         (set-window-configuration lusty--initial-window-config))
-      ;; Note: This is an expensive call, both in CPU and consing.
-      (fit-window-to-buffer (display-buffer matches-buffer)))))
+      (let* ((window
+              (display-buffer matches-buffer))
+             (max-height
+              (lusty--max-window-body-height window))
+             (max-delta
+              (- max-height
+                 (window-height window)))
+             (delta
+              (min max-delta
+                   (- (max (lusty--min-matches-window-height)
+                           (with-current-buffer matches-buffer
+                             (count-lines (point-min) (point-max))))
+                      (window-height window)))))
+        (set-window-hscroll window 0)  ; probably not necessary
+        (unless (zerop delta)
+          (window-resize window
+                         delta
+                         nil  ; horizontal
+                         window))))))  ; ignore
 
 (defun lusty-buffer-list ()
   "Return a list of buffers ordered with those currently visible at the end."
@@ -801,10 +824,12 @@ Not relevant to the user, generally."
 ;; Principal goal: fit as many items as possible into as few buffer/window rows
 ;; as possible. This leads to maximizing the number of columns (approximately).
 (defun lusty--compute-layout-matrix (items)
-  (let* ((max-visible-rows (1- (lusty-max-window-height)))
+  (let* ((max-visible-rows
+          ;; -1 is for a potential TRUNCATION indicator line.
+          (1- (lusty--max-window-body-height)))
          (max-width
           ;; Prior to calling this function we called
-          ;; `lusty--setup-matches-window`, which expanded the window for the
+          ;; `lusty--setup-matches-window', which expanded the window for the
           ;; matches buffer horizontally as much as it could. Therefore the
           ;; current width of that window is the maximum width.
           (lusty--exploitable-window-body-width))
@@ -912,7 +937,9 @@ Not relevant to the user, generally."
   ;;
   (let* ((separator-length (length lusty-column-separator))
          (n-items (length lengths-v))
-         (max-visible-rows (1- (lusty-max-window-height)))
+         (max-visible-rows
+          ;; -1 is for a potential TRUNCATION indicator line.
+          (1- (lusty--max-window-body-height)))
          (available-width (lusty--exploitable-window-body-width))
          ;; Holds memoized widths of candidate columns (ranges of items).
          (lengths-h
@@ -958,8 +985,7 @@ Not relevant to the user, generally."
           (setq lower n-rows))))
     (if (> upper max-visible-rows)
         ;; No row count can accomodate all entries; have to truncate.
-        ;; (-1 for the truncate indicator)
-        (cl-values (1- max-visible-rows) t)
+        (cl-values max-visible-rows t)
       (cl-values upper nil))))
 
 (cl-defun lusty--display-matches ()
