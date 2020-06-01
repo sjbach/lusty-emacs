@@ -728,6 +728,11 @@ Not relevant to the user, generally."
         (setq-local indicate-empty-lines nil)
         (setq-local word-wrap nil)
         (setq-local line-prefix nil)
+        ;; In graphical Emacs don't display an inactive cursor in the matches
+        ;; window. But if the window happens to be selected by the user, do
+        ;; show a cursor. (Terminal Emacs never displays the cursor of an
+        ;; inactive window.)
+        (setq-local cursor-in-non-selected-windows nil)
         (buffer-disable-undo)))
     matches-buffer))
 
