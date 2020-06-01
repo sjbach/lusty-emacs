@@ -1067,21 +1067,33 @@ level."
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map minibuffer-local-map)
     (define-key map (kbd "RET") #'lusty-open-this)
-    (define-key map "\t" #'lusty-select-match)
-    (define-key map [remap yank] #'lusty-yank)
-    (define-key map [remap delete-backward-char] #'lusty-delete-backward)
-    (define-key map "\C-n" #'lusty-highlight-next)
-    (define-key map "\C-p" #'lusty-highlight-previous)
-    (define-key map "\C-s" #'lusty-highlight-next)
-    (define-key map "\C-r" #'lusty-highlight-previous)
-    (define-key map "\C-f" #'lusty-highlight-next-column)
-    (define-key map "\C-b" #'lusty-highlight-previous-column)
+    (define-key map (kbd "TAB") #'lusty-select-match)
+    (define-key map [remap next-line] #'lusty-highlight-next)  ; C-n
+    (define-key map [remap previous-line] #'lusty-highlight-previous)  ; C-p
+    (define-key map (kbd "C-s") #'lusty-highlight-next)
+    (define-key map (kbd "C-r") #'lusty-highlight-previous)
+    (define-key map (kbd "C-f") #'lusty-highlight-next-column)
+    (define-key map (kbd "C-b") #'lusty-highlight-previous-column)
     (define-key map (kbd "<left>") #'lusty-highlight-previous-column)
     (define-key map (kbd "<right>") #'lusty-highlight-next-column)
     (define-key map (kbd "<up>") #'lusty-highlight-previous)
     (define-key map (kbd "<down>") #'lusty-highlight-next)
-    (define-key map "\C-xd" #'lusty-launch-dired)
-    (define-key map "\C-xe" #'lusty-select-current-name)
+    (define-key map (kbd "C-x d") #'lusty-launch-dired)
+    (define-key map (kbd "C-x e") #'lusty-select-current-name)
+    ;; Special overrides.
+    (define-key map [remap yank] #'lusty-yank)
+    (define-key map [remap delete-backward-char] #'lusty-delete-backward)
+    ;; Bindings for Evil.
+    (define-key map [remap evil-next-line] #'lusty-highlight-next)  ; j
+    (define-key map [remap evil-previous-line] #'lusty-highlight-previous)  ; k
+    (define-key map [remap evil-scroll-page-down]  ; C-f
+      #'lusty-highlight-next-column)
+    (define-key map [remap evil-scroll-page-up]  ; C-b
+      #'lusty-highlight-previous-column)
+    (define-key map [remap evil-scroll-down]  ; C-d
+      #'lusty-highlight-next-column)
+    (define-key map [remap evil-scroll-up]  ; C-u (sometimes)
+      #'lusty-highlight-previous-column)
     (setq lusty-mode-map map))
   (run-hooks 'lusty-setup-hook))
 
