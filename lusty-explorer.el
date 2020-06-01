@@ -652,7 +652,10 @@ on the current frame."
   (interactive)
   (if lusty--active-mode
       ;; This will lead to an unwind which calls `lusty--clean-up'.
-      (minibuffer-keyboard-quit)
+      (if (fboundp 'minibuffer-keyboard-quit)
+          (minibuffer-keyboard-quit)
+        ;; Package `delsel' is not always loaded.
+        (abort-recursive-edit))
     ;; Fallback; lusty is not running. This is anomalous. Either lusty crashed
     ;; and this window is left over, or the user has purposely selected the
     ;; hidden buffer in another window. Just quit the buffer and keep the
