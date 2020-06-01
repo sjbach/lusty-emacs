@@ -691,11 +691,15 @@ Not relevant to the user, generally."
                (:buffer-explorer
                 (lusty-buffer-explorer-matches minibuffer-text)))))
         (lusty--compute-layout-matrix matches)))
-    ;; Update the matches window.
-    (let ((matches-buffer (get-buffer-create lusty-buffer-name)))
+    ;; Create/update the matches window.
+    (pcase-let ((`(,matches-buffer ,newly-created-p)
+                 (pcase (get-buffer lusty-buffer-name)
+                   ((and (pred buffer-live-p) buf)
+                    (cl-values buf nil))
+                   (_
+                    (cl-values (get-buffer-create lusty-buffer-name) t)))))
       (with-current-buffer matches-buffer
-        (lusty--matches-buffer-mode)
-        (let ((buffer-read-only nil))
+        (when newly-created-p
           (when visual-line-mode
             (visual-line-mode -1))
           (unless truncate-lines
@@ -720,6 +724,8 @@ Not relevant to the user, generally."
           (setq-local word-wrap nil)
           (setq-local line-prefix nil)
           (buffer-disable-undo)
+          (lusty--matches-buffer-mode))
+        (let ((buffer-read-only nil))
           (with-silent-modifications
             (atomic-change-group
               (erase-buffer)
