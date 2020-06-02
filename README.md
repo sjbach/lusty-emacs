@@ -16,16 +16,29 @@ Add this line to your `~/.emacs.d/init.el`:
 (require 'lusty-explorer)
 ```
 
-To launch the explorer, run or bind the following commands:
+To launch `lusty`:
 
 ```
-M-x lusty-file-explorer
 M-x lusty-buffer-explorer
+M-x lusty-file-explorer
 ```
 
-And then use as you would `find-file` or `switch-to-buffer`. A split window shows the `*Lusty-Matches*` buffer, which updates dynamically as you type using a fuzzy matching algorithm.  One match is highlighted; you can move the highlight using `C-n` / `C-p` (next, previous) and `C-f` / `C-b` (next column, previous column).  Pressing `TAB` or `RET` will select the highlighted match (with slightly different semantics).
+And then use as you would `switch-to-buffer`  or `find-file` or `ido-find-file`. Files/buffers are filtered using the [LiquidMetal](https://github.com/rmm5t/liquidmetal) fuzzy/flex matching algorithm. Dotfiles are hidden by default but you can show them by entering `.`.
 
-To create a new buffer with the given name, press `C-x e`.  To open dired at the current viewed directory, press `C-x d`.
+Keybindings to navigate matches:
+* `TAB` - choose the highlighted item; open a file or buffer, descend into a directory
+* `RET` - ditto, but create the file/buffer if there are no matches
+* `C-n` / `C-p` - highlight next item, previous item in the current column
+* `C-f` / `C-b` - highlight next column, previous column
+* `C-s` / `C-r` - ditto
+* `C-x d` - Launch `dired` within the current directory
+* `C-x e` - Create a new buffer with the entered name
+* Evil bindings: `j`, `k`, `C-f`, `C-b`
+
+If you add `(lusty-explorer-mode)` to your `~/.emacs.d/init.el`, these global bindings take effect:
+* `C-x b` - `lusty-buffer-explorer` (in place of `switch-to-buffer`)
+* `C-x f` - `lusty-file-explorer` (in place of `find-file`)
+
 
 # Customization:
 
@@ -43,6 +56,23 @@ Respects these variables:
 completion-ignored-extensions
 ```
 
+
+# Recent changes:
+
+## Spring 2020:
+
+#### Bringing this old package closer to the conventions and quality-of-life standards of Emacs packages of 2020
+* Presentation:
+  * The buffer/window for displaying matches properly stretches the full frame and resizes itself more exactly.
+  * Look-and-feel changes in the spirit of e.g. [which-key](https://github.com/justbur/emacs-which-key) and [Hydra](https://github.com/abo-abo/hydra).
+* Robustness:
+  * If the package crashes or exits in an unexpected way, it cleans itself up;
+  * Can now dismiss `lusty` when the matches window is selected using `q` or `C-g` or `ESC ESC ESC`;
+* Correctness:
+  * Buffer recency is according to the ordering of the current frame rather than the global ordering;
+* Performance improvements for working in directories having many thousands of files;
+
+
 # Contributors:
 
 - Tassilo Horn
@@ -57,6 +87,7 @@ completion-ignored-extensions
 - p3r7
 - Nick Alcock
 - Jonas Bernoulli
+
 
 # Misc:
 
