@@ -760,10 +760,12 @@ Not relevant to the user, generally."
               (lusty--display-matches)))
           (goto-char (point-min))
           (set-buffer-modified-p nil)))
-      ;; If our matches window has somehow become the only window:
       (when (one-window-p 'nomini)
-        ;; Restore original window configuration before fitting the window so
-        ;; the minibuffer won't grow and look silly.
+        ;; Our matches window has somehow become the only window in the frame.
+        ;; Restore the original window configuration before resizing the window
+        ;; so that the minibuffer won't grow to an unusual size. (Aside: this
+        ;; may have only been an issue in older versions of Emacs, now
+        ;; unsupported.)
         (set-window-configuration lusty--initial-window-config))
       (let* ((window
               (display-buffer matches-buffer))
