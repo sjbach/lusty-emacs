@@ -633,8 +633,6 @@ on the current frame."
          (window-fringe-absent-p
           (and (equal (window-fringes) '(0 0 nil nil))
                ;; (Probabably these are redundant checks.)
-               (eq (fringe-columns 'left) 0)
-               (eq (fringe-columns 'right) 0)
                (eq (frame-fringe-width) 0)
                ;; There are also `left-fringe-width`, `right-fringe-width`, but
                ;; I'm not sure about them.
